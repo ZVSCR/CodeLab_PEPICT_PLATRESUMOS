@@ -1,2 +1,110 @@
 /* Custom overrides on top of Bootstrap. Add rules here only when Bootstrap
    doesn't cover what you need. */
+
+/* =========================================================================
+   VARIÁVEIS DE COR
+   Troque estes valores pelas cores exatas do Figma (é o único lugar que muda
+   a cor do header e do footer ao mesmo tempo).
+   ========================================================================= */
+:root {
+  --cor-institucional: #0a5c36;        /* verde placeholder da UNIFESP */
+  --cor-institucional-texto: #ffffff;  /* cor do texto sobre o verde */
+}
+
+/* =========================================================================
+   HEADER (cabeçalho das telas pós-login)
+   ========================================================================= */
+.app-header {
+  background-color: var(--cor-institucional);
+  color: var(--cor-institucional-texto);
+}
+
+.app-header__inner {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;  /* logo à esquerda | página no meio | usuário à direita */
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.app-header__logo-placeholder {
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: 1px;
+  border: 2px solid var(--cor-institucional-texto);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+}
+
+/* Quando trocar o placeholder por <img>, ela respeita esta altura */
+.app-header__logo {
+  height: 40px;
+  width: auto;
+}
+
+.app-header__page {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 0;
+  text-align: center;
+}
+
+.app-header__user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.app-header__logout {
+  color: var(--cor-institucional-texto);
+  text-decoration: underline;
+}
+.app-header__logout:hover {
+  color: var(--cor-institucional-texto);
+  opacity: 0.85;
+}
+
+/* =========================================================================
+   FOOTER (faixa retangular igual ao header)
+   ========================================================================= */
+.app-footer {
+  background-color: var(--cor-institucional);
+  color: var(--cor-institucional-texto);
+}
+
+.app-footer__inner {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.app-footer__link {
+  color: var(--cor-institucional-texto);
+  text-decoration: none;
+}
+.app-footer__link:hover {
+  color: var(--cor-institucional-texto);
+  text-decoration: underline;
+}
+
+.app-footer__sep {
+  opacity: 0.6;
+}
+
+/* =========================================================================
+   RESPONSIVO: em telas estreitas (celular) empilha os itens do header
+   ========================================================================= */
+@media (max-width: 576px) {
+  .app-header__inner {
+    justify-content: center;
+    text-align: center;
+  }
+}

@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% comment %}
+   base_app.html = molde de TODAS as telas pós-login.
+   Ele herda o esqueleto do base.html e preenche o header e o footer.
+
+   Numa página pós-login você escreve só isto:
+
+       extends 'base_app.html'
+       block nome_pagina -> Painel do Aluno
+       block content -> ...conteúdo específico da tela...
+{% endcomment %}
+
+{% block header %}
+<header class="app-header">
+  <div class="app-header__inner">
+
+    <!-- LOGO DA UNIFESP -->
+    <!-- Placeholder por enquanto. Quando tiver a imagem, coloque o arquivo em
+         static/plataformaResumosAPP/img/logo-unifesp.png e troque este bloco por:
+         <img src="{% static 'plataformaResumosAPP/img/logo-unifesp.png' %}"
+              alt="UNIFESP" class="app-header__logo"> -->
+    <div class="app-header__brand">
+      <span class="app-header__logo-placeholder">UNIFESP</span>
+    </div>
+
+    <!-- NOME DA PÁGINA (cada tela define no bloco nome_pagina) -->
+    <h1 class="app-header__page">{% block nome_pagina %}{% endblock %}</h1>
+
+    <!-- USUÁRIO LOGADO -->
+    <!-- {{ user.username }} vem "de graça" do Django em toda página -->
+    <div class="app-header__user">
+      <span class="app-header__username">{{ user.username }}</span>
+      <a href="{% url 'logout' %}" class="app-header__logout">Sair</a>
+    </div>
+
+  </div>
+</header>
+{% endblock %}
+
+{% block footer %}
+<footer class="app-footer">
+  <div class="app-footer__inner">
+    <a href="#" class="app-footer__link">Central de ajuda</a>
+    <span class="app-footer__sep">·</span>
+    <a href="#" class="app-footer__link">Privacidade</a>
+  </div>
+</footer>
+{% endblock %}
