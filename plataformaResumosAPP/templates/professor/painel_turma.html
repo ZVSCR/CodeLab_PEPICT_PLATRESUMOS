@@ -1,11 +1,8 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Painel da Turma</title>
-</head>
-<body>
-    <h1>{{ turma.nome_turma }}</h1>
+{% extends 'base_app.html' %}
 
+{% block nome_pagina %}{{ turma.nome_turma }}{% endblock %}
+
+{% block content %}
     <p>
         <strong>Disciplina:</strong> {{ turma.disciplina }} <br>
         <strong>Curso:</strong> {{ turma.curso }}
@@ -55,5 +52,4 @@
     <a href="{% url 'dashboard_professor' %}">
         Voltar ao Dashboard
     </a>
-</body>
-</html>
+{% endblock %}

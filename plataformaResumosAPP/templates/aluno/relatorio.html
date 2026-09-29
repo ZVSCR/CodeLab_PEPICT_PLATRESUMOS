@@ -1,13 +1,9 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Resumos estruturado de Projeto</title>
-</head>
-<body>
-    <h1>Edição de Resumos Estruturados</h1>
+{% extends 'base_app.html' %}
 
+{% block nome_pagina %}Edição de Resumos Estruturados{% endblock %}
+
+{% block content %}
     <p>Status Atual: <strong>{{ projeto.get_status_projeto_display }}</strong></p>
-
 
     {% if submissao and submissao.resultado_submissao != 0 %}
         <hr>
@@ -16,12 +12,6 @@
         <p><strong>Feedback:</strong> {{ submissao.feedback|default:"Nenhum feedback informado." }}</p>
         <p><strong>Data da avaliação:</strong> {{ submissao.data_submissao|date:"d/m/Y H:i" }}</p>
         <hr>
-    {% endif %}    
-
-    {% if messages %}
-        {% for message in messages %}
-            <p><strong>{{ message }}</strong></p>
-        {% endfor %}
     {% endif %}
 
     <form method="POST">
@@ -45,10 +35,10 @@
             <p>Metodologia:<br>{{ form.metodologia_projeto }} <small>Explique as etapas do trabalho e como se deu a interação com a comunidade (ou justifique a proposta, caso não tenha interação).</small></p>
             <p>Resultados:<br>{{ form.resultados_projeto }} <small>Liste os produtos gerados (protótipos, oficinas, relatórios, etc.) e os resultados alcançados.</small></p>
             <p>Justificativa ODS:<br>{{ form.justificativa_ods }} <small>Indique até 3 ODS trabalhados e justifique como o trabalho contribuiu com cada um deles.</small>
-            </p></p>
+            </p>
             <p>Reflexão:<br>{{ form.reflexao_projeto }} <small>Relate os principais aprendizados, desafios e percepções sobre a extensão universitária.</small> </p>
             <p>Referências:<br>{{ form.referencia_projeto }} <small>Inclua as fontes bibliográficas utilizadas (se houver, no formato ABNT).</small>
-            </p></p>
+            </p>
 
             {% if projeto.status_projeto == 0 or projeto.status_projeto == 3 %}
                 <button type="submit">Salvar Relatório</button>
@@ -74,5 +64,4 @@
 
     <br><br>
     <a href="{% url 'dashboard_aluno' %}">Voltar</a>
-</body>
-</html>
+{% endblock %}

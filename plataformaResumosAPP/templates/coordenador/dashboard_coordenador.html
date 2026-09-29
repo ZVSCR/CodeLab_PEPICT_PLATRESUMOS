@@ -1,19 +1,13 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <title>Dashboard Coordenador</title>
-</head>
-<body>
+{% extends 'base_app.html' %}
 
-    <h1>Dashboard do Coordenador</h1>
-    <p>Você está logado como Coordenador.</p>
+{% block nome_pagina %}Dashboard do Coordenador{% endblock %}
 
+{% block content %}
     <a href="{% url 'turmas_coordenador' %}">
         <button type="button">Ver Turmas e Projetos Aprovados</button>
     </a>
 
-        <a href="{% url 'gerenciar_tipos_usuarios' %}">
+    <a href="{% url 'gerenciar_tipos_usuarios' %}">
         <button type="button">Gerenciar tipos de usuarios</button>
     </a>
 
@@ -51,10 +45,4 @@
         </table>
         <br>
     {% endif %}
-
-    <a href="{% url 'logout' %}">
-        <button type="button">Logout</button>
-    </a>
-
-</body>
-</html>
+{% endblock %}

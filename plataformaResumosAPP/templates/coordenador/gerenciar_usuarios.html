@@ -1,21 +1,8 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <title>Gerenciar Usuários</title>
-</head>
-<body>
+{% extends 'base_app.html' %}
 
-    <h1>Gerenciar Tipos de Usuários</h1>
+{% block nome_pagina %}Gerenciar Tipos de Usuários{% endblock %}
 
-    {% if messages %}
-        <ul>
-            {% for message in messages %}
-                <li>{{ message }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
-
+{% block content %}
     <form method="GET">
         <label for="id_username">Buscar usuário:</label>
         {{ form.username }}
@@ -64,7 +51,4 @@
     {% endif %}
 
     <p><a href="{% url 'dashboard_coordenador' %}">&larr; Voltar ao Dashboard</a></p>
-
-
-</body>
-</html>
+{% endblock %}

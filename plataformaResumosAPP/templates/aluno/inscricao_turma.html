@@ -1,16 +1,11 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <title>Inscrição em Turma</title>
-</head>
-<body>
+{% extends 'base_app.html' %}
 
-    <h1>Inscrição em Turma</h1>
+{% block nome_pagina %}Inscrição em Turma{% endblock %}
 
+{% block content %}
     <form method="POST">
         {% csrf_token %}
-        
+
         {{ form.as_p }}
 
         <button type="submit">Inscrever-se</button>
@@ -21,6 +16,4 @@
             voltar ao inicio
         </button>
     </a>
-
-</body>
-</html>
+{% endblock %}

@@ -7,8 +7,17 @@
    a cor do header e do footer ao mesmo tempo).
    ========================================================================= */
 :root {
-  --cor-institucional: #0a5c36;        /* verde placeholder da UNIFESP */
-  --cor-institucional-texto: #ffffff;  /* cor do texto sobre o verde */
+  --cor-institucional: #ffffff;        /* cor do header e do footer */
+  --cor-institucional-texto: #000000;  /* cor do texto sobre o header/footer */
+}
+
+/* =========================================================================
+   FUNDO DA PÁGINA (tudo que não é header nem footer)
+   Aplicado no body (a página inteira). O header e o footer têm cor própria,
+   então ficam por cima; só o restante mostra este fundo.
+   ========================================================================= */
+body {
+  background-color: #f5f7fa;   /* fundo branco da página inteira */
 }
 
 /* =========================================================================
