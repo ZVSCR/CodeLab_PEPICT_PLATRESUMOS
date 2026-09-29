@@ -1,25 +1,21 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <title>Turmas por Semestre - Coordenador</title>
-</head>
-<body>
+{% extends 'base_app.html' %}
 
+{% block nome_pagina %}Gestão de Semestres e Turmas{% endblock %}
+
+{% block content %}
     <p><a href="{% url 'dashboard_coordenador' %}">&larr; Voltar ao Dashboard</a></p>
-    
-    <h1>Gestão de Semestres e Turmas</h1>
+
     <p>Veja abaixo a divisão das turmas e a respectiva gerência de Caderno de resumos configuradas para cada semestre.</p>
 
     {% for semestre in semestres %}
         <div>
             <h2>{{ semestre.ano }}/{{ semestre.semestre }}º Semestre</h2>
-            
+
             {% if semestre.revista %}
                 <div>
                     <p><strong>Caderno de Resumos Associado:</strong> {{ semestre.revista.titulo }}</p>
                     <p><strong>Status:</strong> {{ semestre.revista.projetos_revista.count }} projeto(s) associado(s).</p>
-                    
+
                     {% if semestre.revista.projetos_revista.count > 0 %}
                         <p>
                             <a href="{% url 'pdf_revista' semestre.revista.id %}">
@@ -52,6 +48,4 @@
     {% empty %}
         <p>Nenhum semestre cadastrado no sistema.</p>
     {% endfor %}
-
-</body>
-</html>
+{% endblock %}

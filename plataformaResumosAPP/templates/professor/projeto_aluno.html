@@ -1,10 +1,8 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Análise de Resumo</title>
-</head>
-<body>
+{% extends 'base_app.html' %}
 
+{% block nome_pagina %}Análise de Resumo{% endblock %}
+
+{% block content %}
     <h1>{{ projeto.titulo_projeto }}</h1>
 
     <p><strong>Aluno:</strong> {{ projeto.aluno.get_full_name|default:projeto.aluno.username }}</p>
@@ -51,12 +49,6 @@
 
     <h2>Avaliação</h2>
 
-    {% if messages %}
-        {% for msg in messages %}
-            <p><strong>{{ msg }}</strong></p>
-        {% endfor %}
-    {% endif %}
-
     {% if ja_avaliado %}
         <p><strong>Status:</strong> {{ submissao.get_resultado_submissao_display }}</p>
         <p><strong>Feedback registrado:</strong></p>
@@ -75,6 +67,4 @@
 
     <br>
     <a href="{% url 'painel_turma' projeto.turma.pk %}">Voltar ao painel</a>
-
-</body>
-</html>
+{% endblock %}

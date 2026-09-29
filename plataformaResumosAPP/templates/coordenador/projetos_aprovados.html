@@ -1,14 +1,10 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <title>Projetos Aprovados</title>
-</head>
-<body>
+{% extends 'base_app.html' %}
 
+{% block nome_pagina %}Banco de Resumos Aprovados{% endblock %}
+
+{% block content %}
     <p><a href="{% url 'dashboard_coordenador' %}">&larr; Voltar ao Dashboard</a></p>
-    
-    <h1>Banco de Resumos Aprovados</h1>
+
     <p>Abaixo constam as submissões homologadas aptas para compor as edições dos Cadernos de Resumos.</p>
 
     {% if projetos %}
@@ -19,7 +15,7 @@
                     <p>Autores: {{ projeto.nome_autores }}</p>
                     <p>Turma/Disciplina: {{ projeto.turma.disciplina }} ({{ projeto.turma.nome_turma }})</p>
                     <p>
-                        Programas: 
+                        Programas:
                         {% for prog in projeto.programa.all %}
                             {{ prog.nome }}{% if not forloop.last %}, {% endif %}
                         {% empty %}
@@ -32,6 +28,4 @@
     {% else %}
         <p>Não existem Resumos aprovados no sistema até o momento.</p>
     {% endif %}
-
-</body>
-</html>
+{% endblock %}
