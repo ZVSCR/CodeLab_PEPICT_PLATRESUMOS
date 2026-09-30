@@ -1,36 +1,32 @@
-{% extends 'base.html' %}
+{% extends 'base_auth.html' %}
 
 {% block title %}Login{% endblock %}
 
-{% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-4">
-        <h2 class="text-center mb-4">Login</h2>
+{% block auth_content %}
+<h1 class="auth-titulo">Entrar</h1>
+<p class="auth-subtitulo">Acesse sua conta para continuar.</p>
 
-        <form method="post">
-            {% csrf_token %}
+<form method="post" novalidate>
+    {% csrf_token %}
 
-            <div class="mb-3">
-                {{ form.username.label_tag }}
-                {{ form.username }}
-            </div>
-
-            <div class="mb-3">
-                {{ form.password.label_tag }}
-                {{ form.password }}
-            </div>
-
-            {% if form.errors %}
-                <div class="alert alert-danger">Usuário ou senha inválidos</div>
-            {% endif %}
-
-            <button type="submit" class="btn btn-primary w-100">Entrar</button>
-        </form>
-
-        <div class="text-center mt-3">
-            <p>Fazer Cadastro</p>
-            <a href="{% url 'cadastro' %}">Criar conta</a>
-        </div>
+    <div class="mb-3">
+        {{ form.username.label_tag }}
+        {{ form.username }}
     </div>
-</div>
+
+    <div class="mb-4">
+        {{ form.password.label_tag }}
+        {{ form.password }}
+    </div>
+
+    {% if form.errors %}
+        <div class="alert alert-danger">Usuário ou senha inválidos</div>
+    {% endif %}
+
+    <button type="submit" class="btn auth-botao w-100">Entrar</button>
+</form>
+
+<p class="text-center mt-4 mb-0 auth-rodape">
+    Não tem conta? <a href="{% url 'cadastro' %}">Criar conta</a>
+</p>
 {% endblock %}

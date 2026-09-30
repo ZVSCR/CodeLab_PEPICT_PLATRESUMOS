@@ -34,7 +34,7 @@ class UsuarioCreationForm(UserCreationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        for field_name in ['username', 'email', 'first_name', 'last_name', 'ra']:
+        for field_name in ['username', 'email', 'first_name', 'last_name', 'ra', 'password1', 'password2']:
             self.fields[field_name].widget.attrs.update({
                 'class': 'form-control'
             })
