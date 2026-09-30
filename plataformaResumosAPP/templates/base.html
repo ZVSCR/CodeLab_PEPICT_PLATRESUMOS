@@ -22,6 +22,10 @@
          O base_app.html preenche com o cabeçalho das telas pós-login. -->
     {% block header %}{% endblock %}
 
+    <!-- ENCAIXE DO CORPO: mensagens + miolo. As telas normais usam o padrão
+         abaixo. O base_auth.html (login/cadastro) substitui este bloco
+         inteiro para montar a tela dividida ao meio. -->
+    {% block body %}
     <!-- Mensagens globais (messages.success/error vindas das views) -->
     <div class="container mt-3">
         {% if messages %}
@@ -35,6 +39,7 @@
     <main class="container my-4 flex-grow-1">
         {% block content %}{% endblock %}
     </main>
+    {% endblock %}
 
     <!-- ENCAIXE DO FOOTER: mesma ideia do header, vazio por padrão -->
     {% block footer %}{% endblock %}
