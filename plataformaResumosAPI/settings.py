@@ -17,6 +17,9 @@ import dj_database_url
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+from dotenv import load_dotenv
+
+load_dotenv(BASE_DIR / '.env')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -95,15 +98,6 @@ AUTH_USER_MODEL = 'plataformaResumosAPP.Usuario'
 
 AUTH_PASSWORD_VALIDATORS = []
 
-#DATABASE_URL_RENDER = 'postgresql://database_resumos_pepict_user:Fi5koWZJSmtehuQQKRB05slcFOQ0izb1@dpg-d3rb91juibrs73fqnqs0-a.oregon-postgres.render.com/database_resumos_pepict?sslmode=require'
-
-'''DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL', DATABASE_URL_RENDER),
-        conn_max_age=600
-    )
-}
-'''
 DATABASES = {
     'default': dj_database_url.config(
         # 1. Tenta encontrar a DATABASE_URL do Render.
