@@ -1,15 +1,9 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Criar Turma</title>
-</head>
+{% extends 'base_app.html' %}
 
-<body>
+{% block nome_pagina %}Criar Nova Turma{% endblock %}
 
-    <h1>Criar Nova Turma</h1>
-
+{% block content %}
     <form method="post">
-
         {% csrf_token %}
 
         {{ form.as_p }}
@@ -17,7 +11,6 @@
         <button type="submit">
             Criar Turma
         </button>
-
     </form>
 
     <br>
@@ -25,6 +18,4 @@
     <a href="{% url 'dashboard_professor' %}">
         Voltar ao Dashboard
     </a>
-
-</body>
-</html>
+{% endblock %}

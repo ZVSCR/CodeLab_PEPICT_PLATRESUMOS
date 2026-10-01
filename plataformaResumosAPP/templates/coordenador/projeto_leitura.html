@@ -1,14 +1,10 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ projeto.titulo_projeto }}</title>
-</head>
-<body>
+{% extends 'base_app.html' %}
 
+{% block nome_pagina %}{{ projeto.titulo_projeto }}{% endblock %}
+
+{% block content %}
     <p><a href="{% url 'projetos_aprovados' projeto.turma.id %}">&larr; Voltar para a lista</a></p>
-    
-    <h1>{{ projeto.titulo_projeto }}</h1>
+
     <p><em>Por: {{ projeto.nome_autores }}</em></p>
 
     <ul>
@@ -48,6 +44,4 @@
     <a href="{% url 'pdf_resumo' projeto.id %}">
         <button type="button">Baixar PDF do Resumo</button>
     </a>
-
-</body>
-</html>
+{% endblock %}

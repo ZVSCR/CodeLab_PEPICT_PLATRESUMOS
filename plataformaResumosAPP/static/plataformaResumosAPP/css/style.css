@@ -1,2 +1,205 @@
 /* Custom overrides on top of Bootstrap. Add rules here only when Bootstrap
    doesn't cover what you need. */
+
+
+:root {
+  --cor-institucional: #ffffff;        /* cor do header e do footer */
+  --cor-institucional-texto: #000000;  /* cor do texto sobre o header/footer */
+}
+
+body {
+  background-color: #f5f7fa;   /* fundo branco da página inteira */
+}
+
+/* HEADER (cabeçalho das telas pós-login)*/
+.app-header {
+  background-color: var(--cor-institucional);
+  color: var(--cor-institucional-texto);
+}
+
+.app-header__inner {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;  /* logo à esquerda | página no meio | usuário à direita */
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.app-header__logo-placeholder {
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: 1px;
+  border: 2px solid var(--cor-institucional-texto);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+}
+
+/* Quando trocar o placeholder por <img>, ela respeita esta altura */
+.app-header__logo {
+  height: 40px;
+  width: auto;
+}
+
+.app-header__page {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 0;
+  text-align: center;
+}
+
+.app-header__user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.app-header__logout {
+  color: var(--cor-institucional-texto);
+  text-decoration: underline;
+}
+.app-header__logout:hover {
+  color: var(--cor-institucional-texto);
+  opacity: 0.85;
+}
+
+/* FOOTER (faixa retangular igual ao header)*/
+.app-footer {
+  background-color: var(--cor-institucional);
+  color: var(--cor-institucional-texto);
+}
+
+.app-footer__inner {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.app-footer__link {
+  color: var(--cor-institucional-texto);
+  text-decoration: none;
+}
+.app-footer__link:hover {
+  color: var(--cor-institucional-texto);
+  text-decoration: underline;
+}
+
+.app-footer__sep {
+  opacity: 0.6;
+}
+
+/* RESPONSIVO: em telas estreitas (celular) empilha os itens do header*/
+@media (max-width: 576px) {
+  .app-header__inner {
+    justify-content: center;
+    text-align: center;
+  }
+}
+
+/*TELAS DE ENTRADA (login e cadastro) — usadas pelo base_auth.html
+  Troque as duas cores do degradê aqui para mudar o painel verde.*/
+:root {
+  --auth-verde-escuro: #0b3d2e;   /* topo do degradê */
+  --auth-verde-claro: #6fcf97;    /* base do degradê */
+  --auth-verde-botao: #146c43;    /* botões e links das telas de entrada */
+}
+
+/* Metade esquerda: degradê de cima (escuro) para baixo (claro) */
+.auth-painel {
+  background: linear-gradient(180deg, var(--auth-verde-escuro) 0%, var(--auth-verde-claro) 100%);
+}
+
+/* Metade direita: fundo branco */
+.auth-lado {
+  background-color: #ffffff;
+}
+
+/* Box cinza do formulário. max-width evita que estique em telas grandes */
+.auth-form {
+  width: 100%;
+  max-width: 460px;
+  background-color: #f1f3f5;          /* cinza claro do box */
+  border: 1px solid #e3e6ea;          /* borda sutil pra marcar o contorno */
+  border-radius: 12px;                /* cantos arredondados */
+  padding: 2.5rem 2rem;               /* respiro interno */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);  /* sombra leve, "descola" do fundo */
+}
+
+/* No celular o box fica com menos respiro interno */
+@media (max-width: 576px) {
+  .auth-form {
+    padding: 1.75rem 1.25rem;
+  }
+}
+
+.auth-titulo {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.auth-subtitulo {
+  color: #6c757d;
+  margin-bottom: 1.75rem;
+}
+
+.auth-form label {
+  font-weight: 500;
+  margin-bottom: 0.35rem;
+}
+
+.auth-form .form-control:focus {
+  border-color: var(--auth-verde-botao);
+  box-shadow: 0 0 0 0.2rem rgba(20, 108, 67, 0.2);
+}
+
+.auth-erro {
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+/* Botão principal (Entrar / Cadastrar) */
+.auth-botao {
+  background-color: var(--auth-verde-botao);
+  border-color: var(--auth-verde-botao);
+  color: #ffffff;
+  font-weight: 600;
+  padding: 0.6rem;
+}
+.auth-botao:hover,
+.auth-botao:focus {
+  background-color: var(--auth-verde-escuro);
+  border-color: var(--auth-verde-escuro);
+  color: #ffffff;
+}
+
+/* Botões do topo (Entrar | Cadastro): contorno por padrão,
+   preenchido quando é a página atual */
+.auth-aba {
+  border: 1px solid var(--auth-verde-botao);
+  color: var(--auth-verde-botao);
+  background-color: transparent;
+  min-width: 100px;
+}
+.auth-aba:hover {
+  background-color: rgba(20, 108, 67, 0.08);
+  color: var(--auth-verde-botao);
+}
+.auth-aba--ativa,
+.auth-aba--ativa:hover {
+  background-color: var(--auth-verde-botao);
+  color: #ffffff;
+}
+
+.auth-rodape a {
+  color: var(--auth-verde-botao);
+  font-weight: 600;
+}
