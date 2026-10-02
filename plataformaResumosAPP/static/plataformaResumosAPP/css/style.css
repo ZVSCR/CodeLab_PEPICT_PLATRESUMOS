@@ -209,104 +209,184 @@ body {
    PAINEL DO ALUNO — saudação, estatísticas, inscrições e status
    ====================================================================== */
 
-/* (A) Saudação ----------------------------------------------------------*/
+/* (A) Saudação + ação primária -----------------------------------------*/
 .painel-aluno__saudacao {
-  margin-bottom: 1.25rem;
+  margin-bottom: 2rem;
 }
 .painel-aluno__saudacao-titulo {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 0.15rem;
+  font-size: 2.75rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.35rem;
 }
 .painel-aluno__saudacao-sub {
   color: #6c757d;
   margin-bottom: 0;
+}
+.painel-aluno__saudacao-acoes {
+  flex-shrink: 0;
 }
 
 /* (B) Linha de estatísticas --------------------------------------------*/
 .painel-aluno__stats {
   margin-bottom: 1.75rem;
 }
+/* Layout horizontal: ícone à esquerda, texto à direita */
 .stat-card {
   background-color: #ffffff;
   border: 1px solid #e3e6ea;
-  border-radius: 12px;
-  padding: 1.25rem 1rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  border-radius: 14px;
+  padding: 1.1rem 1.25rem;
   height: 100%;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+}
+.stat-card__icone {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
+  border-radius: 10px;
+  background-color: #f1f3f5;
+  color: #343a40;
 }
-.stat-card__valor {
-  font-size: 2rem;
-  font-weight: 700;
-  line-height: 1.1;
-  color: #146c43;          /* reutiliza o verde institucional do projeto */
+.stat-card__texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 .stat-card__rotulo {
-  font-size: 0.9rem;
-  color: #41464b;          /* contraste alto sobre fundo branco */
-  margin-top: 0.25rem;
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+.stat-card__linha {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.stat-card__valor {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #212529;          /* número neutro, como no design */
+}
+.stat-card__qualificador {
+  font-size: 0.85rem;
+  color: #6c757d;
 }
 
 /* (C) Contêiner de inscrições ------------------------------------------*/
+.painel-aluno__inscricoes {
+  background-color: #ffffff;
+  border: 1px solid #e3e6ea;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+}
 .painel-aluno__inscricoes-titulo {
-  font-weight: 600;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+.painel-aluno__lista {
+  /* lista de linhas separadas por divisores */
 }
 
-/* Base comum dos badges de status */
+/* Linha de turma: nome à esquerda, status + ação à direita */
+.turma-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 0;
+  border-top: 1px solid #eceef1;
+}
+.turma-row:first-child {
+  border-top: none;
+}
+.turma-row__nome {
+  font-weight: 600;
+  color: #212529;
+}
+.turma-row__direita {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+.turma-row--vazia {
+  display: block;
+}
+
+/* Ação por linha: link de texto com seta */
+.turma-row__acao {
+  font-weight: 600;
+  text-decoration: none;
+  color: #212529;
+  white-space: nowrap;
+}
+.turma-row__acao:hover {
+  text-decoration: underline;
+}
+.turma-row__seta {
+  margin-left: 0.35rem;
+}
+
+/* Badges de status — pílula com bolinha, paleta suave --------------------*/
 .status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   font-size: 0.8rem;
   font-weight: 600;
-  padding: 0.35em 0.65em;
-  border-radius: 0.5rem;
-  align-self: flex-start;     /* o badge não estica no flex column do card */
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;       /* pílula */
+  white-space: nowrap;
+}
+.status-badge__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: currentColor;
+  flex-shrink: 0;
 }
 
-/* Rascunho — cinza neutro (texto escuro sobre fundo claro) */
+/* Rascunho — cinza neutro */
 .status-badge--rascunho {
-  background-color: #e2e3e5;
-  color: #41464b;
+  background-color: #e9ecef;
+  color: #495057;
 }
 
-/* Em análise — âmbar (texto escuro sobre fundo amarelo) */
+/* Em análise — âmbar suave (texto âmbar escuro p/ contraste) */
 .status-badge--analise {
-  background-color: #ffc107;
-  color: #332701;
+  background-color: #fff3cd;
+  color: #8a6400;
 }
 
-/* Aprovado — verde (texto branco sobre verde escuro) */
+/* Aprovado / Submetido — verde suave */
 .status-badge--aprovado {
-  background-color: #146c43;
-  color: #ffffff;
+  background-color: #d9f2e4;
+  color: #146c43;
 }
 
-/* Rejeitado — vermelho (texto branco sobre vermelho) */
+/* Rejeitado — vermelho suave */
 .status-badge--rejeitado {
-  background-color: #b02a37;
-  color: #ffffff;
+  background-color: #f8d7da;
+  color: #b02a37;
 }
 
-/* Não iniciado — azul-acinzentado (texto branco) */
+/* Não iniciado — cinza neutro */
 .status-badge--nao-iniciado {
-  background-color: #495057;
-  color: #ffffff;
+  background-color: #e9ecef;
+  color: #6c757d;
 }
 
 /* Indicador de foco visível reforçado para controles do painel */
-.card .btn:focus-visible,
-.btn-primary:focus-visible {
+.turma-row__acao:focus-visible,
+.btn:focus-visible {
   outline: 3px solid #0a58ca;
   outline-offset: 2px;
-}
-
-/* Garante que o botão secundário ocupe largura total só no mobile.
-   (classe utilitária usada no template: w-100 w-sm-auto) */
-@media (min-width: 576px) {
-  .w-sm-auto {
-    width: auto !important;
-  }
 }
