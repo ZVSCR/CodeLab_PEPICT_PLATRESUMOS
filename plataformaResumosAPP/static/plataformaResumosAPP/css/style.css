@@ -203,3 +203,110 @@ body {
   color: var(--auth-verde-botao);
   font-weight: 600;
 }
+
+
+/* ======================================================================
+   PAINEL DO ALUNO — saudação, estatísticas, inscrições e status
+   ====================================================================== */
+
+/* (A) Saudação ----------------------------------------------------------*/
+.painel-aluno__saudacao {
+  margin-bottom: 1.25rem;
+}
+.painel-aluno__saudacao-titulo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.15rem;
+}
+.painel-aluno__saudacao-sub {
+  color: #6c757d;
+  margin-bottom: 0;
+}
+
+/* (B) Linha de estatísticas --------------------------------------------*/
+.painel-aluno__stats {
+  margin-bottom: 1.75rem;
+}
+.stat-card {
+  background-color: #ffffff;
+  border: 1px solid #e3e6ea;
+  border-radius: 12px;
+  padding: 1.25rem 1rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.stat-card__valor {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #146c43;          /* reutiliza o verde institucional do projeto */
+}
+.stat-card__rotulo {
+  font-size: 0.9rem;
+  color: #41464b;          /* contraste alto sobre fundo branco */
+  margin-top: 0.25rem;
+}
+
+/* (C) Contêiner de inscrições ------------------------------------------*/
+.painel-aluno__inscricoes-titulo {
+  font-weight: 600;
+}
+
+/* Base comum dos badges de status */
+.status-badge {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.35em 0.65em;
+  border-radius: 0.5rem;
+  align-self: flex-start;     /* o badge não estica no flex column do card */
+}
+
+/* Rascunho — cinza neutro (texto escuro sobre fundo claro) */
+.status-badge--rascunho {
+  background-color: #e2e3e5;
+  color: #41464b;
+}
+
+/* Em análise — âmbar (texto escuro sobre fundo amarelo) */
+.status-badge--analise {
+  background-color: #ffc107;
+  color: #332701;
+}
+
+/* Aprovado — verde (texto branco sobre verde escuro) */
+.status-badge--aprovado {
+  background-color: #146c43;
+  color: #ffffff;
+}
+
+/* Rejeitado — vermelho (texto branco sobre vermelho) */
+.status-badge--rejeitado {
+  background-color: #b02a37;
+  color: #ffffff;
+}
+
+/* Não iniciado — azul-acinzentado (texto branco) */
+.status-badge--nao-iniciado {
+  background-color: #495057;
+  color: #ffffff;
+}
+
+/* Indicador de foco visível reforçado para controles do painel */
+.card .btn:focus-visible,
+.btn-primary:focus-visible {
+  outline: 3px solid #0a58ca;
+  outline-offset: 2px;
+}
+
+/* Garante que o botão secundário ocupe largura total só no mobile.
+   (classe utilitária usada no template: w-100 w-sm-auto) */
+@media (min-width: 576px) {
+  .w-sm-auto {
+    width: auto !important;
+  }
+}

@@ -4,29 +4,92 @@
 {% block nome_pagina %}Painel do Aluno{% endblock %}
 
 {% block content %}
-    <h3 class="mb-3">Minhas Inscrições e Resumos</h3>
+    {# (A) Saudação #}
+    <div class="painel-aluno__saudacao">
+        <h2 class="painel-aluno__saudacao-titulo">Olá, {{ user.username }}</h2>
+        <p class="painel-aluno__saudacao-sub">Bem-vindo(a) ao seu painel.</p>
+    </div>
 
-    <ul class="list-group mb-4">
-        {% for inscricao in lista_inscricoes %}
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <span>
-                    {{ inscricao.turma.nome_turma }}
-                    {% if inscricao.projeto_vinculado %}
-                        <strong>(Status: {{ inscricao.projeto_vinculado.get_status_projeto_display }})</strong>
-                    {% else %}
-                        <strong>(Status: Não iniciado)</strong>
-                    {% endif %}
-                </span>
-                <a href="{% url 'relatorio_projeto' inscricao.id %}" class="btn btn-sm btn-outline-primary">
-                    Acessar Relatório
-                </a>
-            </li>
-        {% empty %}
-            <li class="list-group-item">Nenhuma inscrição encontrada.</li>
-        {% endfor %}
-    </ul>
+    {# (B) Linha de estatísticas #}
+    <section class="painel-aluno__stats" aria-label="Resumo da sua atividade">
+        <div class="row row-cols-1 row-cols-sm-3 g-3">
 
-    <a href="{% url 'inscrever_em_turma' %}" class="btn btn-primary">
-        Inscrever-se em uma turma
-    </a>
+            <div class="col">
+                <div class="stat-card">
+                    <span class="stat-card__valor">{{ stat_turmas_inscritas|default:"—" }}</span>
+                    <span class="stat-card__rotulo">Turmas inscritas</span>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="stat-card">
+                    <span class="stat-card__valor">{{ stat_resumos_andamento|default:"—" }}</span>
+                    <span class="stat-card__rotulo">Resumos em andamento</span>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="stat-card">
+                    <span class="stat-card__valor">{{ stat_resumos_submetidos|default:"—" }}</span>
+                    <span class="stat-card__rotulo">Resumos submetidos</span>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    {# (C) Contêiner de inscrições #}
+    <section class="painel-aluno__inscricoes" aria-labelledby="titulo-inscricoes">
+        <h2 id="titulo-inscricoes" class="painel-aluno__inscricoes-titulo h4 mb-3">Turmas inscritas</h2>
+
+        <ul class="row row-cols-1 row-cols-md-2 g-3 list-unstyled mb-4">
+            {% for inscricao in lista_inscricoes %}
+                <li class="col">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body d-flex flex-column">
+                            <h3 class="card-title h6 mb-2">{{ inscricao.turma.nome_turma }}</h3>
+
+                            {# Indicador de status #}
+                            {% if inscricao.projeto_vinculado %}
+                                {% with status=inscricao.projeto_vinculado.get_status_projeto_display %}
+                                    <span class="badge status-badge
+                                        {% if status == 'Rascunho' %}status-badge--rascunho
+                                        {% elif status == 'Em análise' %}status-badge--analise
+                                        {% elif status == 'Aprovado' %}status-badge--aprovado
+                                        {% elif status == 'Rejeitado' %}status-badge--rejeitado
+                                        {% endif %}"
+                                        aria-label="Status do projeto: {{ status }}">
+                                        {{ status }}
+                                    </span>
+                                {% endwith %}
+                            {% else %}
+                                <span class="badge status-badge status-badge--nao-iniciado"
+                                      aria-label="Status do projeto: Não iniciado">
+                                    Não iniciado
+                                </span>
+                            {% endif %}
+
+                            <div class="mt-auto pt-3">
+                                <a href="{% url 'relatorio_projeto' inscricao.id %}"
+                                   class="btn btn-sm btn-outline-primary w-100 w-sm-auto">
+                                    Acessar Relatório da inscrição em {{ inscricao.turma.nome_turma }}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+            {% empty %}
+                <li class="col-12">
+                    <div class="alert alert-light border text-center" role="status">
+                        <p class="mb-0">Você ainda não possui inscrições. Inscreva-se em uma turma para começar.</p>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+
+        {# Ação primária: fora do laço, visível com ou sem inscrições #}
+        <a href="{% url 'inscrever_em_turma' %}" class="btn btn-primary btn-lg">
+            Inscrever-se em uma turma
+        </a>
+    </section>
 {% endblock %}
