@@ -4,29 +4,119 @@
 {% block nome_pagina %}Painel do Aluno{% endblock %}
 
 {% block content %}
-    <h3 class="mb-3">Minhas Inscrições e Resumos</h3>
+    {# (A) Saudação + ação primária #}
+    <div class="painel-aluno__saudacao d-flex flex-column flex-md-row justify-content-md-between align-items-md-end gap-3">
+        <div>
+            <h2 class="painel-aluno__saudacao-titulo">Olá, {{ user.username }}.</h2>
+            <p class="painel-aluno__saudacao-sub">Acompanhe suas turmas e retome seus resumos de onde parou.</p>
+        </div>
+        <div class="painel-aluno__saudacao-acoes">
+            <a href="{% url 'inscrever_em_turma' %}" class="btn btn-dark w-100 w-md-auto">Inscrever-se em turma</a>
+        </div>
+    </div>
 
-    <ul class="list-group mb-4">
-        {% for inscricao in lista_inscricoes %}
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <span>
-                    {{ inscricao.turma.nome_turma }}
-                    {% if inscricao.projeto_vinculado %}
-                        <strong>(Status: {{ inscricao.projeto_vinculado.get_status_projeto_display }})</strong>
-                    {% else %}
-                        <strong>(Status: Não iniciado)</strong>
-                    {% endif %}
-                </span>
-                <a href="{% url 'relatorio_projeto' inscricao.id %}" class="btn btn-sm btn-outline-primary">
-                    Acessar Relatório
-                </a>
-            </li>
-        {% empty %}
-            <li class="list-group-item">Nenhuma inscrição encontrada.</li>
-        {% endfor %}
-    </ul>
+    {# (B) Linha de estatísticas #}
+    <section class="painel-aluno__stats" aria-label="Resumo da sua atividade">
+        <div class="row row-cols-1 row-cols-sm-3 g-3">
 
-    <a href="{% url 'inscrever_em_turma' %}" class="btn btn-primary">
-        Inscrever-se em uma turma
-    </a>
+            <div class="col">
+                <div class="stat-card">
+                    <span class="stat-card__icone" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                    </span>
+                    <span class="stat-card__texto">
+                        <span class="stat-card__rotulo">Turmas inscritas</span>
+                        <span class="stat-card__linha">
+                            <span class="stat-card__valor">{{ stat_turmas_inscritas|default:"—" }}</span>
+                            <span class="stat-card__qualificador">neste semestre</span>
+                        </span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="stat-card">
+                    <span class="stat-card__icone" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                    </span>
+                    <span class="stat-card__texto">
+                        <span class="stat-card__rotulo">Em andamento</span>
+                        <span class="stat-card__linha">
+                            <span class="stat-card__valor">{{ stat_resumos_andamento|default:"—" }}</span>
+                            <span class="stat-card__qualificador">resumos ativos</span>
+                        </span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="stat-card">
+                    <span class="stat-card__icone" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </span>
+                    <span class="stat-card__texto">
+                        <span class="stat-card__rotulo">Submetidos</span>
+                        <span class="stat-card__linha">
+                            <span class="stat-card__valor">{{ stat_resumos_submetidos|default:"—" }}</span>
+                            <span class="stat-card__qualificador">aguardando retorno</span>
+                        </span>
+                    </span>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    {# (C) Contêiner de inscrições #}
+    <section class="painel-aluno__inscricoes" aria-labelledby="titulo-inscricoes">
+        <h2 id="titulo-inscricoes" class="painel-aluno__inscricoes-titulo h4 mb-0">Minhas turmas</h2>
+
+        <ul class="painel-aluno__lista list-unstyled mb-0">
+            {% for inscricao in lista_inscricoes %}
+                <li class="turma-row">
+                    <span class="turma-row__nome">{{ inscricao.turma.nome_turma }}</span>
+
+                    <div class="turma-row__direita">
+                        {# Indicador de status #}
+                        {% if inscricao.projeto_vinculado %}
+                            {% with status=inscricao.projeto_vinculado.get_status_projeto_display %}
+                                <span class="status-badge
+                                    {% if status == 'Rascunho' %}status-badge--rascunho
+                                    {% elif status == 'Em análise' %}status-badge--analise
+                                    {% elif status == 'Aprovado' %}status-badge--aprovado
+                                    {% elif status == 'Rejeitado' %}status-badge--rejeitado
+                                    {% endif %}"
+                                    aria-label="Status do projeto: {{ status }}">
+                                    <span class="status-badge__dot" aria-hidden="true"></span>{{ status }}
+                                </span>
+
+                                <a href="{% url 'relatorio_projeto' inscricao.id %}" class="turma-row__acao">
+                                    {% if status == 'Aprovado' %}Ver resumo
+                                    {% elif status == 'Rascunho' %}Editar resumo
+                                    {% else %}Continuar resumo{% endif %}
+                                    <span class="turma-row__seta" aria-hidden="true">&rarr;</span>
+                                </a>
+                            {% endwith %}
+                        {% else %}
+                            <span class="status-badge status-badge--nao-iniciado"
+                                  aria-label="Status do projeto: Não iniciado">
+                                <span class="status-badge__dot" aria-hidden="true"></span>Não iniciado
+                            </span>
+
+                            <a href="{% url 'relatorio_projeto' inscricao.id %}" class="turma-row__acao">
+                                Iniciar resumo
+                                <span class="turma-row__seta" aria-hidden="true">&rarr;</span>
+                            </a>
+                        {% endif %}
+                    </div>
+                </li>
+            {% empty %}
+                <li class="turma-row turma-row--vazia">
+                    <div class="alert alert-light border text-center mb-0 w-100" role="status">
+                        <p class="mb-0">Você ainda não possui inscrições. Inscreva-se em uma turma para começar.</p>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    </section>
 {% endblock %}
