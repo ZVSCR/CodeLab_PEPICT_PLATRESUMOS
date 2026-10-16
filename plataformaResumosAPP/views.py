@@ -85,9 +85,17 @@ def dashboard_aluno(request):
 
     for inscricao in lista_inscricoes:
         inscricao.projeto_vinculado = Projeto.objects.filter(aluno=request.user, turma=inscricao.turma).first()
-    
+
+    # Contadores do painel: turmas do semestre mais recente,
+    # resumos editáveis (Rascunho/Rejeitado) e resumos aguardando avaliação (Em análise)
+    semestre_atual = Semestre.objects.order_by('-ano', '-semestre').first()
+    projetos_aluno = Projeto.objects.filter(aluno=request.user)
+
     return render(request, 'aluno/dashboard_aluno.html', {
-        'lista_inscricoes': lista_inscricoes
+        'lista_inscricoes': lista_inscricoes,
+        'stat_turmas_inscritas': lista_inscricoes.filter(turma__semestre=semestre_atual).count(),
+        'stat_resumos_andamento': projetos_aluno.filter(status_projeto__in=[0, 3]).count(),
+        'stat_resumos_submetidos': projetos_aluno.filter(status_projeto=1).count(),
     })
 
 
