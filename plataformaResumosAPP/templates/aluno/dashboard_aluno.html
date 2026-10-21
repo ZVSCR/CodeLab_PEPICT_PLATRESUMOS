@@ -27,7 +27,7 @@
                     <span class="stat-card__texto">
                         <span class="stat-card__rotulo">Turmas inscritas</span>
                         <span class="stat-card__linha">
-                            <span class="stat-card__valor">{{ stat_turmas_inscritas|default:"—" }}</span>
+                            <span class="stat-card__valor">{{ stat_turmas_inscritas|default_if_none:"—" }}</span>
                             <span class="stat-card__qualificador">neste semestre</span>
                         </span>
                     </span>
@@ -42,7 +42,7 @@
                     <span class="stat-card__texto">
                         <span class="stat-card__rotulo">Em andamento</span>
                         <span class="stat-card__linha">
-                            <span class="stat-card__valor">{{ stat_resumos_andamento|default:"—" }}</span>
+                            <span class="stat-card__valor">{{ stat_resumos_andamento|default_if_none:"—" }}</span>
                             <span class="stat-card__qualificador">resumos ativos</span>
                         </span>
                     </span>
@@ -57,7 +57,7 @@
                     <span class="stat-card__texto">
                         <span class="stat-card__rotulo">Submetidos</span>
                         <span class="stat-card__linha">
-                            <span class="stat-card__valor">{{ stat_resumos_submetidos|default:"—" }}</span>
+                            <span class="stat-card__valor">{{ stat_resumos_submetidos|default_if_none:"—" }}</span>
                             <span class="stat-card__qualificador">aguardando retorno</span>
                         </span>
                     </span>
@@ -91,7 +91,7 @@
                                 </span>
 
                                 <a href="{% url 'relatorio_projeto' inscricao.id %}" class="turma-row__acao">
-                                    {% if status == 'Aprovado' %}Ver resumo
+                                    {% if status == 'Aprovado' or status == 'Em análise' %}Ver resumo
                                     {% elif status == 'Rascunho' %}Editar resumo
                                     {% else %}Continuar resumo{% endif %}
                                     <span class="turma-row__seta" aria-hidden="true">&rarr;</span>
