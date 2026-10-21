@@ -425,3 +425,163 @@ body {
     width: auto !important;
   }
 }
+
+
+/* ======================================================================
+   INSCRIÇÃO EM TURMA — cabeçalho, card do formulário e card de ajuda
+   ====================================================================== */
+
+/* (A) Cabeçalho da página ---------------------------------------------*/
+.inscricao__cabecalho {
+  margin-bottom: 2rem;
+}
+.inscricao__sobretitulo {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 0.5rem;
+}
+.inscricao__titulo {
+  /* mesma escala fluida da saudação do Painel do Aluno */
+  font-size: clamp(1.9rem, 7vw, 2.75rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.5rem;
+}
+.inscricao__sub {
+  color: #6c757d;
+  margin-bottom: 0;
+}
+
+/* (B) Card do formulário ----------------------------------------------*/
+.inscricao-card {
+  background-color: #ffffff;
+  border: 1px solid #e3e6ea;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 2rem 2.25rem;
+}
+.inscricao-card__topo {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+.inscricao-card__icone {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background-color: #eef1f4;
+  color: #212529;
+}
+.inscricao-card__titulo {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+}
+.inscricao-card__sub {
+  color: #6c757d;
+  margin-bottom: 0;
+}
+.inscricao-card__label {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+.inscricao-card__ajuda {
+  font-size: 0.95rem;
+  color: #6c757d;
+  margin-bottom: 0.6rem;
+}
+.inscricao-card__input {
+  padding: 0.55rem 0.9rem;
+  border-radius: 8px;
+}
+.inscricao-card__input:focus {
+  border-color: #212529;
+  box-shadow: 0 0 0 0.2rem rgba(33, 37, 41, 0.15);
+}
+.inscricao-card__acoes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+.inscricao-card__voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #212529;
+  text-decoration: none;
+}
+.inscricao-card__voltar-texto {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.inscricao-card__voltar:hover {
+  color: #000000;
+}
+
+/* (C) Card de ajuda ---------------------------------------------------*/
+.inscricao-ajuda {
+  background-color: #eaf1fd;
+  border-radius: 16px;
+  padding: 1.75rem;
+}
+.inscricao-ajuda__icone {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: #ffffff;
+  color: #212529;
+  margin-bottom: 1.25rem;
+}
+.inscricao-ajuda__titulo {
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+.inscricao-ajuda__texto {
+  color: #495057;
+  margin-bottom: 1.25rem;
+}
+.inscricao-ajuda__nota {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  color: #495057;
+  margin-bottom: 0;
+}
+.inscricao-ajuda__nota svg {
+  flex-shrink: 0;
+  color: #212529;
+}
+
+/* Celular: menos respiro e botão em largura total acima do "Voltar" */
+@media (max-width: 575.98px) {
+  .inscricao-card {
+    padding: 1.5rem 1.25rem;
+  }
+  .inscricao-card__titulo {
+    font-size: 1.25rem;
+  }
+  .inscricao-card__acoes {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    text-align: center;
+  }
+  .inscricao-card__voltar {
+    justify-content: center;
+  }
+  .inscricao-ajuda {
+    padding: 1.5rem 1.25rem;
+  }
+}
