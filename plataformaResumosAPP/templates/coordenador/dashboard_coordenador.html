@@ -1,48 +1,127 @@
 {% extends 'base_app.html' %}
 
-{% block nome_pagina %}Dashboard do Coordenador{% endblock %}
+{% block nome_pagina %}Painel do Coordenador{% endblock %}
 
 {% block content %}
-    <a href="{% url 'turmas_coordenador' %}">
-        <button type="button">Ver Turmas e Projetos Aprovados</button>
-    </a>
+    {# (A) Cabeçalho da página #}
+    <div class="painel-coord__cabecalho">
+        <p class="painel-coord__sobretitulo">Painel do Coordenador</p>
+        <h2 class="painel-coord__titulo">Dashboard do Coordenador</h2>
+        <p class="painel-coord__sub">Olá, {{ user.first_name|default:user.username }}. Acompanhe os projetos aprovados e as edições de resumos acadêmicos.</p>
 
-    <a href="{% url 'gerenciar_tipos_usuarios' %}">
-        <button type="button">Gerenciar tipos de usuarios</button>
-    </a>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+            <a href="{% url 'turmas_coordenador' %}" class="btn btn-light border">Ver Turmas e Projetos Aprovados</a>
+            <a href="{% url 'gerenciar_tipos_usuarios' %}" class="btn btn-light border">Gerenciar Tipos de Usuários</a>
+        </div>
+    </div>
 
-    <br><br>
+    {# (B) Cards de estatística — reaproveita o .stat-card do Painel do Aluno #}
+    <section class="painel-coord__stats" aria-label="Resumo do semestre">
+        <div class="row row-cols-1 row-cols-sm-3 g-3">
+            <div class="col">
+                <div class="stat-card">
+                    <span class="stat-card__icone" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                    </span>
+                    <span class="stat-card__texto">
+                        <span class="stat-card__rotulo">Turmas acompanhadas</span>
+                        <span class="stat-card__linha">
+                            <span class="stat-card__valor">{{ stat_turmas }}</span>
+                            <span class="stat-card__qualificador">neste semestre</span>
+                        </span>
+                    </span>
+                </div>
+            </div>
 
-    {% if revistas %}
-        <h2>Caderno de Resumos</h2>
-        <table border="1" cellpadding="5">
-            <thead>
-                <tr>
-                    <th>Caderno de Resumos</th>
-                    <th>Semestre</th>
-                    <th>Projetos</th>
-                    <th>Ação</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for revista in revistas %}
+            <div class="col">
+                <div class="stat-card">
+                    <span class="stat-card__icone" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    </span>
+                    <span class="stat-card__texto">
+                        <span class="stat-card__rotulo">Projetos aprovados</span>
+                        <span class="stat-card__linha">
+                            <span class="stat-card__valor">{{ stat_aprovados }}</span>
+                            <span class="stat-card__qualificador">
+                                {% if semestre_atual %}no semestre {{ semestre_atual.ano }}.{{ semestre_atual.semestre }}{% else %}nenhum semestre{% endif %}
+                            </span>
+                        </span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="stat-card">
+                    <span class="stat-card__icone" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                    </span>
+                    <span class="stat-card__texto">
+                        <span class="stat-card__rotulo">Cadernos de resumos</span>
+                        <span class="stat-card__linha">
+                            <span class="stat-card__valor">{{ stat_cadernos }}</span>
+                            <span class="stat-card__qualificador">edições disponíveis</span>
+                        </span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# (C) Tabela de cadernos #}
+    <section class="painel-coord__cadernos" aria-labelledby="titulo-cadernos">
+        <div class="painel-coord__cadernos-topo">
+            <div>
+                <h2 id="titulo-cadernos" class="painel-coord__cadernos-titulo">Caderno de Resumos</h2>
+                <p class="painel-coord__cadernos-sub">Consulte os projetos aprovados em cada edição.</p>
+            </div>
+            <span class="painel-coord__cadernos-ordem">Edições mais recentes primeiro</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table align-middle mb-0 painel-coord__tabela">
+                <thead>
                     <tr>
-                        <td>{{ revista.titulo }}</td>
-                        <td>{{ revista.semestre }}</td>
-                        <td>{{ revista.projetos_revista.count }}</td>
-                        <td>
-                            {% if revista.projetos_revista.count > 0 %}
-                                <a href="{% url 'pdf_revista' revista.id %}">
-                                    <button type="button">Gerar PDF do Caderno de resumos</button>
-                                </a>
-                            {% else %}
-                                Sem Resumos ainda.
-                            {% endif %}
-                        </td>
+                        <th scope="col">Nome do Caderno</th>
+                        <th scope="col">Semestre</th>
+                        <th scope="col">Projetos Associados</th>
+                        <th scope="col" class="text-end">Ação</th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <br>
-    {% endif %}
+                </thead>
+                <tbody>
+                    {% for revista in revistas %}
+                        <tr>
+                            <td>
+                                <div class="caderno-nome">
+                                    <span class="stat-card__icone" aria-hidden="true">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                                    </span>
+                                    <span>
+                                        <span class="caderno-nome__titulo">{{ revista.titulo }}</span>
+                                        <span class="caderno-nome__sub">
+                                            {% if forloop.first %}Edição atual · projetos aprovados
+                                            {% elif revista.semestre.semestre == 1 %}Edição do primeiro semestre
+                                            {% else %}Edição do segundo semestre{% endif %}
+                                        </span>
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="text-secondary">{{ revista.semestre.ano }}.{{ revista.semestre.semestre }}</td>
+                            <td><strong>{{ revista.num_projetos }}</strong> <span class="text-secondary small">projeto{{ revista.num_projetos|pluralize }}</span></td>
+                            <td class="text-end">
+                                {% if revista.num_projetos > 0 %}
+                                    <a href="{% url 'pdf_revista' revista.id %}" class="btn btn-dark btn-sm px-3">Ver Caderno</a>
+                                {% else %}
+                                    <span class="text-secondary small">Sem resumos ainda</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-secondary py-4">Nenhum caderno de resumos criado ainda.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
 {% endblock %}

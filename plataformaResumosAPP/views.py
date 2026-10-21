@@ -10,6 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, HttpResponseForbidden
 from .models import Turma, Semestre, Inscricao, Projeto, Programa, ODS, Submissao, Revista, ProjetoRevista,Usuario
 from django.db import IntegrityError
+from django.db.models import Count
 
 User = get_user_model()
 
@@ -115,10 +116,22 @@ def dashboard_coordenador(request):
     if request.user.tipo_usuario != 3:
         return HttpResponseForbidden()
     
-    revistas = Revista.objects.all()
-    
+    semestre_atual = Semestre.objects.order_by('-ano', '-semestre').first()
+
+    # Mais recentes primeiro + já conta os projetos de cada caderno numa query só
+    revistas = (
+        Revista.objects
+        .select_related('semestre')
+        .annotate(num_projetos=Count('projetos_revista'))
+        .order_by('-semestre__ano', '-semestre__semestre')
+    )
+
     return render(request, 'coordenador/dashboard_coordenador.html', {
-        'revistas': revistas
+        'revistas': revistas,
+        'semestre_atual': semestre_atual,
+        'stat_turmas': Turma.objects.filter(semestre=semestre_atual).count(),
+        'stat_aprovados': Projeto.objects.filter(turma__semestre=semestre_atual, status_projeto=2).count(),
+        'stat_cadernos': revistas.count(),
     })
 
 

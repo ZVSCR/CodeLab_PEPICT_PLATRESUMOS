@@ -849,3 +849,66 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ======================================================================
+   PAINEL DO COORDENADOR — cabeçalho, cards e tabela de cadernos
+   (os cards reaproveitam o .stat-card do Painel do Aluno)
+   ====================================================================== */
+.painel-coord__cabecalho { margin-bottom: 2rem; }
+.painel-coord__sobretitulo {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 0.5rem;
+}
+.painel-coord__titulo {
+  font-size: clamp(1.9rem, 7vw, 2.75rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.5rem;
+}
+.painel-coord__sub { color: #6c757d; margin-bottom: 0; }
+
+.painel-coord__stats { margin-bottom: 1.75rem; }
+
+/* Card branco que envolve a tabela */
+.painel-coord__cadernos {
+  background-color: #ffffff;
+  border: 1px solid #e3e6ea;
+  border-radius: 14px;
+  overflow: hidden;              /* cantos arredondados também na tabela */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.painel-coord__cadernos-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1.5rem 1.25rem 1rem;
+}
+.painel-coord__cadernos-titulo { font-size: 1.35rem; font-weight: 700; margin-bottom: 0.15rem; }
+.painel-coord__cadernos-sub { font-size: 0.85rem; color: #6c757d; margin-bottom: 0; }
+.painel-coord__cadernos-ordem { font-size: 0.85rem; color: #6c757d; }
+
+/* Tabela */
+.painel-coord__tabela thead th {
+  background-color: #f5f6f8;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #495057;
+  padding: 0.8rem 1.25rem;
+  white-space: nowrap;
+}
+.painel-coord__tabela td { padding: 1rem 1.25rem; }
+.painel-coord__tabela tbody tr:last-child td { border-bottom: none; }
+
+/* Célula "Nome do Caderno": ícone + título + subtítulo */
+.caderno-nome { display: flex; align-items: center; gap: 0.9rem; min-width: 220px; }
+.caderno-nome__titulo { display: block; font-weight: 700; color: #212529; }
+.caderno-nome__sub { display: block; font-size: 0.85rem; color: #6c757d; }
+
+@media (max-width: 575.98px) {
+  .painel-coord__cadernos-topo { padding: 1.15rem 1rem 0.75rem; }
+}
