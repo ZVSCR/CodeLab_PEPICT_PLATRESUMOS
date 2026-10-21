@@ -232,6 +232,7 @@ def relatorio_view(request, inscricao_id):
         "projeto": projeto,
         "form": form,
         "submissao": submissao,
+        "editavel": projeto.status_projeto in [0, 3],
     })
 
 
