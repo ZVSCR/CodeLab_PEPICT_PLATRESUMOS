@@ -10,7 +10,8 @@ from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, HttpResponseForbidden
 from .models import Turma, Semestre, Inscricao, Projeto, Programa, ODS, Submissao, Revista, ProjetoRevista,Usuario
 from django.db import IntegrityError
-from django.db.models import Count, F, Prefetch, Q
+from django.db.models import Count, F, Max, Prefetch, Q
+from django.urls import reverse
 
 User = get_user_model()
 
@@ -388,44 +389,55 @@ def projetos_aprovados_view(request, turma_id):
     if request.user.tipo_usuario != 3:
         return HttpResponseForbidden()
  
-    turma = get_object_or_404(Turma, id=turma_id)
- 
-    projetos = Projeto.objects.filter(
-        turma=turma,
-        status_projeto=2
-    ).select_related('aluno').prefetch_related('programa', 'ods')
- 
+    turma = get_object_or_404(Turma.objects.select_related('semestre', 'responsavel'), id=turma_id)
+
+    # data_envio = data da última submissão (o sistema não guarda a data da aprovação)
+    projetos = (
+        Projeto.objects
+        .filter(turma=turma, status_projeto=2)
+        .select_related('aluno')
+        .prefetch_related('programa', 'ods')
+        .annotate(data_envio=Max('submissoes__data_submissao'))
+        .order_by(F('data_envio').desc(nulls_last=True), '-id')
+    )
+
     revista, _ = Revista.objects.get_or_create(
         semestre=turma.semestre,
         defaults={'titulo': f'Revista {turma.semestre}'}
     )
- 
+
     projetos_na_revista = set(
         ProjetoRevista.objects.filter(revista=revista).values_list('projeto_id', flat=True)
     )
- 
+
+    # Cada interruptor da tela envia um projeto por vez: incluir=1 liga, sem incluir desliga
     if request.method == 'POST':
-        ids_selecionados = request.POST.getlist('projetos_selecionados')
- 
-        adicionados = 0
-        for projeto_id in ids_selecionados:
-            projeto = get_object_or_404(Projeto, id=projeto_id, turma=turma, status_projeto=2)
+        projeto = get_object_or_404(Projeto, id=request.POST.get('projeto_id'), turma=turma, status_projeto=2)
+
+        if request.POST.get('incluir') == '1':
             _, criado = ProjetoRevista.objects.get_or_create(revista=revista, projeto=projeto)
             if criado:
-                adicionados += 1
- 
-        if adicionados:
-            messages.success(request, f"{adicionados} projeto(s) adicionado(s) à revista.")
+                messages.success(request, f'"{projeto.titulo_projeto}" foi incluído na {revista.titulo}.')
         else:
-            messages.info(request, "Os projetos selecionados já estavam na revista.")
- 
-        return redirect('projetos_aprovados', turma_id=turma.id)
- 
+            removidos, _ = ProjetoRevista.objects.filter(revista=revista, projeto=projeto).delete()
+            if removidos:
+                messages.info(request, f'"{projeto.titulo_projeto}" foi retirado da {revista.titulo}.')
+
+        # volta para o mesmo card em vez do topo da página
+        return redirect(reverse('projetos_aprovados', args=[turma.id]) + f'#projeto-{projeto.id}')
+
+    projetos = list(projetos)
+    for projeto in projetos:
+        projeto.na_revista = projeto.id in projetos_na_revista
+
+    total_incluidos = sum(1 for p in projetos if p.na_revista)
+
     return render(request, 'coordenador/projetos_aprovados.html', {
         'turma': turma,
         'projetos': projetos,
-        'projetos_na_revista': projetos_na_revista,
         'revista': revista,
+        'total_incluidos': total_incluidos,
+        'total_nao_incluidos': len(projetos) - total_incluidos,
     })
  
  

@@ -976,3 +976,59 @@ body {
   .turma-item { padding: 1rem; }
   .turma-item .btn { width: 100%; }
 }
+
+
+/* ======================================================================
+   BANCO DE RESUMOS APROVADOS (coordenador, por turma)
+   Reaproveita: .coord-card, .semestre-card__*, .status-badge
+   ====================================================================== */
+
+/* Card de dados da turma: 3 colunas no desktop, empilha no celular */
+.turma-info {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1.2fr;
+  gap: 1rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid #eceef1;
+}
+.turma-info__rotulo { display: block; font-size: 0.8rem; color: #6c757d; margin-bottom: 0.15rem; }
+.turma-info__valor { display: block; font-weight: 600; color: #212529; }
+
+/* Card de cada resumo */
+.resumo-card { margin-bottom: 1rem; scroll-margin-top: 1rem; }
+.resumo-card__corpo { padding: 1.25rem 1rem 1rem; }
+.resumo-card__titulo {
+  color: #212529;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-size: 1.05rem;
+}
+.resumo-card__titulo:hover { color: #000000; }
+.resumo-card__linha { font-size: 0.85rem; color: #6c757d; margin-bottom: 0.3rem; }
+
+/* Rodapé cinza com o interruptor */
+.resumo-card__rodape {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  flex-wrap: wrap;
+  background-color: #f5f6f8;
+  padding: 0.85rem 1rem;
+}
+.resumo-card__switch {
+  width: 2.6em !important;
+  height: 1.4em;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.resumo-card__switch:checked {
+  background-color: #198754;
+  border-color: #198754;
+}
+.resumo-card__switch-titulo { display: block; font-size: 0.85rem; font-weight: 600; color: #212529; }
+.resumo-card__switch-sub { display: block; font-size: 0.8rem; color: #6c757d; }
+
+@media (max-width: 767.98px) {
+  .turma-info { grid-template-columns: 1fr; }
+}
