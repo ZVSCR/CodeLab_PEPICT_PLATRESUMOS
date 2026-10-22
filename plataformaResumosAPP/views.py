@@ -247,6 +247,13 @@ def relatorio_view(request, inscricao_id):
         "form": form,
         "submissao": submissao,
         "editavel": projeto.status_projeto in [0, 3],
+        # (id da seção no template, nome mostrado no card de progresso)
+        "secoes_progresso": [
+            ('identificacao', 'Identificação'),
+            ('caracteristicas', 'Características'),
+            ('conteudo', 'Conteúdo'),
+            ('referencia', 'Referência'),
+        ],
     })
 
 

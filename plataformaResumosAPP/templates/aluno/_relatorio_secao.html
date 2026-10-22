@@ -1,16 +1,19 @@
 {% comment %}
-   Uma seção do resumo (Objetivos, Metodologia, ...).
+   Um campo de texto do resumo (Título, Objetivos, Metodologia, ...).
    Modo edição: recebe "campo" (campo do form) e "ajuda".
    Modo leitura: recebe "texto" (valor salvo no projeto).
+
+   data-campo marca o campo para a barra de progresso. No modo leitura,
+   data-preenchido diz se ele tem conteúdo (lá não existe input para o JS olhar).
 {% endcomment %}
-<div class="relatorio-secao">
+<div class="rs-campo" data-campo{% if not campo %} data-preenchido="{% if texto %}1{% else %}0{% endif %}"{% endif %}>
     {% if campo %}
-        <label for="{{ campo.id_for_label }}" class="relatorio-secao__titulo">{{ titulo }}</label>
-        <p class="relatorio-ajuda">{{ ajuda }}</p>
+        <label for="{{ campo.id_for_label }}" class="rs-campo__rotulo">{{ titulo }}</label>
+        {% if ajuda %}<p class="rs-campo__ajuda">{{ ajuda }}</p>{% endif %}
         {{ campo }}
-        {% if campo.errors %}<p class="relatorio-erro">{{ campo.errors|join:" " }}</p>{% endif %}
+        {% if campo.errors %}<p class="rs-erro">{{ campo.errors|join:" " }}</p>{% endif %}
     {% else %}
-        <h4 class="relatorio-secao__titulo">{{ titulo }}</h4>
-        <p class="relatorio-secao__texto">{{ texto|linebreaksbr }}</p>
+        <p class="rs-campo__rotulo">{{ titulo }}</p>
+        <div class="rs-campo__texto">{{ texto|default:"—"|linebreaksbr }}</div>
     {% endif %}
 </div>

@@ -588,248 +588,213 @@ body {
 
 
 /* ======================================================================
-   RESUMO DO PROJETO (relatório do aluno) — dados, submissão e avaliação
+   RESUMO ESTRUTURADO (relatório do aluno) — blocos numerados,
+   progresso, envio e avaliação. Reaproveita .painel-coord__* e .status-badge
    ====================================================================== */
 
-/* (A) Cabeçalho da página ---------------------------------------------*/
-.relatorio__cabecalho {
+/* (A) Cabeçalho ---------------------------------------------------------*/
+.rs-cabecalho {
   display: flex;
-  align-items: flex-end;
   justify-content: space-between;
-  gap: 1rem;
+  align-items: flex-end;
+  gap: 1rem 2rem;
   flex-wrap: wrap;
   margin-bottom: 1.75rem;
 }
-.relatorio__sobretitulo {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #212529;
-  margin-bottom: 0.4rem;
-}
-.relatorio__titulo {
-  font-size: clamp(1.9rem, 7vw, 2.75rem);
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  margin-bottom: 0.35rem;
-}
-.relatorio__sub {
-  color: #6c757d;
-  margin-bottom: 0;
-}
-.relatorio__voltar {
-  color: #212529;
-  font-size: 0.95rem;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  white-space: nowrap;
-}
-.relatorio__voltar:hover {
-  color: #000000;
-}
-
-/* Rótulos e textos reutilizados no card principal e na lateral --------*/
-.relatorio-meta__rotulo {
-  display: block;
-  font-size: 0.8rem;
-  color: #6c757d;
-  margin-bottom: 0.2rem;
-}
-.relatorio-meta__valor {
-  color: #212529;
-  margin-bottom: 0;
-}
-.relatorio-ajuda {
-  font-size: 0.85rem;
-  color: #6c757d;
-  margin-bottom: 0.5rem;
-}
-.relatorio-erro {
-  color: #b02a37;
-  font-size: 0.85rem;
-  margin: 0.35rem 0 0;
-}
-
-/* (B) Card principal ---------------------------------------------------*/
-.relatorio-card {
-  background-color: #ffffff;
-  border: 1px solid #e3e6ea;
-  border-radius: 14px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  padding: 1.75rem 2rem;
-}
-.relatorio-card__titulo {
-  font-size: 1.2rem;
-  font-weight: 700;
-  margin-bottom: 1.5rem;
-}
-
-/* Metadados: grade de 2 colunas; itens "--cheio" ocupam a linha toda */
-.relatorio-meta {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.25rem 1.5rem;
-  padding-bottom: 1.5rem;
-  margin-bottom: 0.5rem;
-  border-bottom: 1px solid #eceef1;
-}
-.relatorio-meta__item {
-  min-width: 0;
-}
-.relatorio-meta__item--cheio {
-  grid-column: 1 / -1;
-}
-.relatorio-meta__titulo-projeto {
-  font-size: 1.4rem;
-  font-weight: 700;
-  line-height: 1.25;
-  color: #212529;
-  margin-bottom: 0;
-  overflow-wrap: anywhere;
-}
-
-/* Seções do resumo (Objetivos, Metodologia, ...) */
-.relatorio-secao {
-  margin-top: 1.5rem;
-}
-.relatorio-secao__titulo {
-  display: block;
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #212529;
-  margin-bottom: 0.4rem;
-}
-.relatorio-secao__texto {
-  color: #495057;
-  line-height: 1.6;
-  margin-bottom: 0;
-  overflow-wrap: anywhere;
-}
-
-/* Campos do formulário (modo edição). Os widgets vêm do Django sem
-   classe, então estilizamos pelo contêiner. */
-.relatorio-card input[type="text"],
-.relatorio-card textarea {
-  display: block;
-  width: 100%;
-  padding: 0.55rem 0.8rem;
-  font-size: 0.95rem;
-  color: #212529;
-  background-color: #ffffff;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-}
-/* Altura fixa: alguns campos vêm do Django com 10 linhas por padrão */
-.relatorio-card textarea {
-  height: 120px;
-  min-height: 70px;
-  resize: vertical;
-}
-.relatorio-card textarea[name="nome_autores"] {
-  height: 70px;
-}
-.relatorio-card input[type="text"]:focus,
-.relatorio-card textarea:focus {
-  outline: none;
-  border-color: #212529;
-  box-shadow: 0 0 0 0.2rem rgba(33, 37, 41, 0.15);
-}
-
-/* Checkboxes (Programas e ODS) */
-.relatorio-opcoes > div {
+.rs-cabecalho__sub { max-width: 36rem; }
+.rs-cabecalho__status {
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   gap: 0.35rem;
 }
-.relatorio-opcoes--grade > div {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 0.35rem 1rem;
-}
-.relatorio-opcoes label {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-  color: #212529;
-  cursor: pointer;
-}
-.relatorio-opcoes input[type="checkbox"] {
-  margin-top: 0.2rem;
-  accent-color: #212529;
-}
+.rs-cabecalho__salvo { font-size: 0.8rem; color: #6c757d; }
 
-/* (C) Card lateral: submissão -----------------------------------------*/
-.relatorio-lateral {
+/* (B) Cards numerados ---------------------------------------------------*/
+.rs-card {
   background-color: #ffffff;
   border: 1px solid #e3e6ea;
   border-radius: 14px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   padding: 1.5rem;
+  margin-bottom: 1rem;
+  scroll-margin-top: 1rem;   /* o link do progresso não cola no topo */
 }
-.relatorio-lateral__titulo {
-  font-size: 1.05rem;
-  font-weight: 500;
-  margin-bottom: 0.75rem;
-}
-.relatorio-lateral__item {
-  margin-top: 1.1rem;
-}
-.relatorio-lateral__acoes {
+.rs-card__topo {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 1.25rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid #eceef1;
+  align-items: flex-start;
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
 }
-.relatorio-lateral__pdf {
-  border: 1px solid #ced4da;
-  background-color: #f1f3f5;
+.rs-card__numero {
+  flex-shrink: 0;
+  width: 1.6rem;
+  height: 1.6rem;
+  margin-top: 0.2rem;
+  border-radius: 50%;
+  background-color: #212529;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.relatorio-lateral__aviso {
-  margin-top: 1.25rem;
-  background-color: #eaf1fd;
-  border-radius: 10px;
-  padding: 1rem;
-  font-size: 0.85rem;
-  color: #495057;
-}
-.relatorio-lateral__aviso-titulo {
+.rs-card__titulo { font-size: 1.3rem; font-weight: 700; margin: 0 0 0.15rem; }
+.rs-card__sub { font-size: 0.85rem; color: #6c757d; margin: 0; }
+
+/* Campos ----------------------------------------------------------------*/
+.rs-campo + .rs-campo { margin-top: 1.4rem; }
+.rs-campo__rotulo {
+  display: block;
+  font-size: 0.9rem;
   font-weight: 600;
   color: #212529;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.2rem;
 }
+.rs-campo__ajuda { font-size: 0.82rem; color: #6c757d; margin-bottom: 0.5rem; }
+.rs-campo .form-control {
+  font-size: 0.92rem;
+  border-color: #dee2e6;
+  border-radius: 8px;
+}
+.rs-campo textarea.form-control { min-height: 110px; resize: vertical; line-height: 1.55; }
+.rs-campo textarea[name="nome_autores"] { min-height: 64px; }
+.rs-campo .form-control:focus {
+  border-color: #212529;
+  box-shadow: 0 0 0 0.2rem rgba(33, 37, 41, 0.12);
+}
+.rs-campo__texto { font-size: 0.92rem; color: #212529; line-height: 1.6; overflow-wrap: anywhere; }
+.rs-erro { font-size: 0.82rem; color: #b02a37; margin: 0.4rem 0 0; }
 
-/* Mantém a lateral visível ao rolar o resumo (só no desktop) */
-@media (min-width: 992px) {
-  .relatorio-lateral {
-    position: sticky;
-    top: 1rem;
-  }
+/* Opções em card (programa e ODS): grade de 2 colunas */
+.rs-opcoes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.5rem;
 }
-
-/* (D) Avaliação do resumo ---------------------------------------------*/
-.relatorio-avaliacao {
-  margin-top: 1.5rem;
-}
-.relatorio-avaliacao__rotulo {
-  font-size: 0.9rem;
-  color: #212529;
-  font-weight: 500;
-}
-.relatorio-avaliacao__caixa {
+.rs-opcao {
+  display: block;
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  background-color: #ffffff;
   border: 1px solid #dee2e6;
   border-radius: 8px;
-  padding: 0.75rem 0.9rem;
-  min-height: 80px;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.rs-opcao:hover { border-color: #adb5bd; }
+/* marcado: fundo azul-claro + borda escura, como no design */
+.rs-opcao:has(input:checked),
+.rs-opcao--marcada {
+  background-color: #eef3fc;
+  border-color: #212529;
+}
+.rs-opcao--marcada { cursor: default; }
+.rs-opcao.is-desabilitada { opacity: 0.5; cursor: not-allowed; }
+.rs-opcao__linha {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.88rem;
+  font-weight: 600;
   color: #212529;
+}
+.rs-opcao__linha .form-check-input { margin: 0; flex-shrink: 0; cursor: inherit; }
+.rs-opcao__linha .form-check-input:checked { background-color: #212529; border-color: #212529; }
+.rs-opcao__sub {
+  display: block;
+  font-size: 0.78rem;
+  color: #6c757d;
+  margin-top: 0.2rem;
+  padding-left: 1.55rem;   /* alinha com o texto, depois da caixinha */
+}
+.rs-opcao--marcada .rs-opcao__sub { padding-left: 0; }
+.rs-contador { font-size: 0.8rem; color: #6c757d; }
+
+/* (C) Coluna lateral ----------------------------------------------------*/
+@media (min-width: 992px) {
+  .rs-lateral { position: sticky; top: 1rem; }  /* acompanha a rolagem */
+}
+.rs-progresso { padding: 1.25rem; }
+.rs-progresso__titulo { font-size: 1.05rem; font-weight: 600; margin-bottom: 0.6rem; }
+.rs-progresso__barra-linha { display: flex; align-items: center; gap: 0.75rem; }
+.rs-progresso__barra {
+  flex: 1;
+  height: 6px;
+  background-color: #e9ecef;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.rs-progresso__preenchido {
+  width: 0;
+  height: 100%;
+  background-color: #212529;
+  border-radius: inherit;
+  transition: width 0.3s ease;
+}
+.rs-progresso__pct { font-size: 0.8rem; font-weight: 600; min-width: 2.5rem; text-align: right; }
+.rs-progresso__lista {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0.75rem 0 0;
+  border-top: 1px solid #eceef1;
+}
+.rs-progresso__item a {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.3rem 0;
+  font-size: 0.85rem;
+  color: #6c757d;
+  text-decoration: none;
+}
+.rs-progresso__item a:hover { color: #000000; }
+/* um ícone por estado; o JS troca o data-estado */
+.rs-progresso__icone { display: flex; }
+.rs-progresso__icone svg { display: none; }
+.rs-progresso__item[data-estado="vazio"] .icone-vazio,
+.rs-progresso__item[data-estado="parcial"] .icone-parcial,
+.rs-progresso__item[data-estado="completo"] .icone-completo { display: block; }
+.rs-progresso__item[data-estado="parcial"] a { color: #212529; }
+.rs-progresso__item[data-estado="completo"] a { color: #146c43; font-weight: 600; }
+.rs-dica {
+  margin-top: 1rem;
+  padding: 0.85rem;
+  background-color: #eef3fc;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #495057;
+}
+.rs-dica svg { display: block; margin-bottom: 0.4rem; color: #212529; }
+
+.rs-acoes { padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
+.rs-acoes__rotulo { display: block; font-size: 0.8rem; color: #6c757d; }
+.rs-acoes__valor { display: block; font-weight: 600; color: #212529; }
+.rs-aviso {
+  padding: 0.75rem;
+  background-color: #f5f6f8;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+.rs-aviso__titulo { font-weight: 600; color: #212529; margin-bottom: 0.2rem; }
+
+/* (D) Avaliação ---------------------------------------------------------*/
+.rs-avaliacao__caixa {
+  min-height: 80px;
+  padding: 0.75rem 0.9rem;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
   line-height: 1.6;
+  color: #212529;
   overflow-wrap: anywhere;
 }
-.relatorio-avaliacao__caixa--vazia {
-  color: #adb5bd;
-}
-.relatorio-avaliacao__rodape {
+.rs-avaliacao__caixa--vazia { color: #adb5bd; }
+.rs-avaliacao__rodape {
   font-size: 0.85rem;
   color: #6c757d;
   margin: 1.25rem 0 0;
@@ -837,17 +802,11 @@ body {
   border-top: 1px solid #eceef1;
 }
 
-/* Celular: menos respiro e metadados em uma coluna */
+/* Celular ---------------------------------------------------------------*/
 @media (max-width: 575.98px) {
-  .relatorio-card {
-    padding: 1.35rem 1.15rem;
-  }
-  .relatorio-lateral {
-    padding: 1.25rem 1.15rem;
-  }
-  .relatorio-meta {
-    grid-template-columns: 1fr;
-  }
+  .rs-card { padding: 1.15rem 1rem; }
+  .rs-opcoes { grid-template-columns: 1fr; }
+  .rs-cabecalho__status { align-items: flex-start; }
 }
 
 

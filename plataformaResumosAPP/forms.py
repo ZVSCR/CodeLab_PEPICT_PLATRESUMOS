@@ -98,16 +98,21 @@ class ProjetoForm(forms.ModelForm):
             'objetivos_trabalho', 'metodologia_projeto', 'resultados_projeto', 
             'justificativa_ods', 'reflexao_projeto', 'referencia_projeto'
         ]
+        # Classes do Bootstrap: form-control nos campos de texto e
+        # form-check-input nas caixas de seleção (viram "cards" no template)
         widgets = {
-  
-            'programa': forms.CheckboxSelectMultiple(),
-            'ods': forms.CheckboxSelectMultiple(),
-            
-            'objetivos_trabalho': forms.Textarea(attrs={'rows': 3}),
-            'metodologia_projeto': forms.Textarea(attrs={'rows': 3}),
-            'resultados_projeto': forms.Textarea(attrs={'rows': 3}),
-            'justificativa_ods': forms.Textarea(attrs={'rows': 3}),
-            'reflexao_projeto': forms.Textarea(attrs={'rows': 3}),
+            'titulo_projeto': forms.TextInput(attrs={'class': 'form-control'}),
+            'nome_autores': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+
+            'programa': forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+            'ods': forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+
+            'objetivos_trabalho': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'metodologia_projeto': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'resultados_projeto': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'justificativa_ods': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'reflexao_projeto': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'referencia_projeto': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
         }
 
     def clean_ods(self):
