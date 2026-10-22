@@ -1,0 +1,16 @@
+{% comment %}
+   Uma seção do resumo (Objetivos, Metodologia, ...).
+   Modo edição: recebe "campo" (campo do form) e "ajuda".
+   Modo leitura: recebe "texto" (valor salvo no projeto).
+{% endcomment %}
+<div class="relatorio-secao">
+    {% if campo %}
+        <label for="{{ campo.id_for_label }}" class="relatorio-secao__titulo">{{ titulo }}</label>
+        <p class="relatorio-ajuda">{{ ajuda }}</p>
+        {{ campo }}
+        {% if campo.errors %}<p class="relatorio-erro">{{ campo.errors|join:" " }}</p>{% endif %}
+    {% else %}
+        <h4 class="relatorio-secao__titulo">{{ titulo }}</h4>
+        <p class="relatorio-secao__texto">{{ texto|linebreaksbr }}</p>
+    {% endif %}
+</div>

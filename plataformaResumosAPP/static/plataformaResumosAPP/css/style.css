@@ -585,3 +585,330 @@ body {
     padding: 1.5rem 1.25rem;
   }
 }
+
+
+/* ======================================================================
+   RESUMO DO PROJETO (relatório do aluno) — dados, submissão e avaliação
+   ====================================================================== */
+
+/* (A) Cabeçalho da página ---------------------------------------------*/
+.relatorio__cabecalho {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.75rem;
+}
+.relatorio__sobretitulo {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 0.4rem;
+}
+.relatorio__titulo {
+  font-size: clamp(1.9rem, 7vw, 2.75rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.35rem;
+}
+.relatorio__sub {
+  color: #6c757d;
+  margin-bottom: 0;
+}
+.relatorio__voltar {
+  color: #212529;
+  font-size: 0.95rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+.relatorio__voltar:hover {
+  color: #000000;
+}
+
+/* Rótulos e textos reutilizados no card principal e na lateral --------*/
+.relatorio-meta__rotulo {
+  display: block;
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin-bottom: 0.2rem;
+}
+.relatorio-meta__valor {
+  color: #212529;
+  margin-bottom: 0;
+}
+.relatorio-ajuda {
+  font-size: 0.85rem;
+  color: #6c757d;
+  margin-bottom: 0.5rem;
+}
+.relatorio-erro {
+  color: #b02a37;
+  font-size: 0.85rem;
+  margin: 0.35rem 0 0;
+}
+
+/* (B) Card principal ---------------------------------------------------*/
+.relatorio-card {
+  background-color: #ffffff;
+  border: 1px solid #e3e6ea;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  padding: 1.75rem 2rem;
+}
+.relatorio-card__titulo {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+/* Metadados: grade de 2 colunas; itens "--cheio" ocupam a linha toda */
+.relatorio-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem 1.5rem;
+  padding-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid #eceef1;
+}
+.relatorio-meta__item {
+  min-width: 0;
+}
+.relatorio-meta__item--cheio {
+  grid-column: 1 / -1;
+}
+.relatorio-meta__titulo-projeto {
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #212529;
+  margin-bottom: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Seções do resumo (Objetivos, Metodologia, ...) */
+.relatorio-secao {
+  margin-top: 1.5rem;
+}
+.relatorio-secao__titulo {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #212529;
+  margin-bottom: 0.4rem;
+}
+.relatorio-secao__texto {
+  color: #495057;
+  line-height: 1.6;
+  margin-bottom: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Campos do formulário (modo edição). Os widgets vêm do Django sem
+   classe, então estilizamos pelo contêiner. */
+.relatorio-card input[type="text"],
+.relatorio-card textarea {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.95rem;
+  color: #212529;
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+}
+/* Altura fixa: alguns campos vêm do Django com 10 linhas por padrão */
+.relatorio-card textarea {
+  height: 120px;
+  min-height: 70px;
+  resize: vertical;
+}
+.relatorio-card textarea[name="nome_autores"] {
+  height: 70px;
+}
+.relatorio-card input[type="text"]:focus,
+.relatorio-card textarea:focus {
+  outline: none;
+  border-color: #212529;
+  box-shadow: 0 0 0 0.2rem rgba(33, 37, 41, 0.15);
+}
+
+/* Checkboxes (Programas e ODS) */
+.relatorio-opcoes > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.relatorio-opcoes--grade > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.35rem 1rem;
+}
+.relatorio-opcoes label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #212529;
+  cursor: pointer;
+}
+.relatorio-opcoes input[type="checkbox"] {
+  margin-top: 0.2rem;
+  accent-color: #212529;
+}
+
+/* (C) Card lateral: submissão -----------------------------------------*/
+.relatorio-lateral {
+  background-color: #ffffff;
+  border: 1px solid #e3e6ea;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  padding: 1.5rem;
+}
+.relatorio-lateral__titulo {
+  font-size: 1.05rem;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+}
+.relatorio-lateral__item {
+  margin-top: 1.1rem;
+}
+.relatorio-lateral__acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #eceef1;
+}
+.relatorio-lateral__pdf {
+  border: 1px solid #ced4da;
+  background-color: #f1f3f5;
+}
+.relatorio-lateral__aviso {
+  margin-top: 1.25rem;
+  background-color: #eaf1fd;
+  border-radius: 10px;
+  padding: 1rem;
+  font-size: 0.85rem;
+  color: #495057;
+}
+.relatorio-lateral__aviso-titulo {
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 0.4rem;
+}
+
+/* Mantém a lateral visível ao rolar o resumo (só no desktop) */
+@media (min-width: 992px) {
+  .relatorio-lateral {
+    position: sticky;
+    top: 1rem;
+  }
+}
+
+/* (D) Avaliação do resumo ---------------------------------------------*/
+.relatorio-avaliacao {
+  margin-top: 1.5rem;
+}
+.relatorio-avaliacao__rotulo {
+  font-size: 0.9rem;
+  color: #212529;
+  font-weight: 500;
+}
+.relatorio-avaliacao__caixa {
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 0.75rem 0.9rem;
+  min-height: 80px;
+  color: #212529;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.relatorio-avaliacao__caixa--vazia {
+  color: #adb5bd;
+}
+.relatorio-avaliacao__rodape {
+  font-size: 0.85rem;
+  color: #6c757d;
+  margin: 1.25rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid #eceef1;
+}
+
+/* Celular: menos respiro e metadados em uma coluna */
+@media (max-width: 575.98px) {
+  .relatorio-card {
+    padding: 1.35rem 1.15rem;
+  }
+  .relatorio-lateral {
+    padding: 1.25rem 1.15rem;
+  }
+  .relatorio-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* ======================================================================
+   PAINEL DO COORDENADOR — cabeçalho, cards e tabela de cadernos
+   (os cards reaproveitam o .stat-card do Painel do Aluno)
+   ====================================================================== */
+.painel-coord__cabecalho { margin-bottom: 2rem; }
+.painel-coord__sobretitulo {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 0.5rem;
+}
+.painel-coord__titulo {
+  font-size: clamp(1.9rem, 7vw, 2.75rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.5rem;
+}
+.painel-coord__sub { color: #6c757d; margin-bottom: 0; }
+
+.painel-coord__stats { margin-bottom: 1.75rem; }
+
+/* Card branco que envolve a tabela */
+.painel-coord__cadernos {
+  background-color: #ffffff;
+  border: 1px solid #e3e6ea;
+  border-radius: 14px;
+  overflow: hidden;              /* cantos arredondados também na tabela */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.painel-coord__cadernos-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1.5rem 1.25rem 1rem;
+}
+.painel-coord__cadernos-titulo { font-size: 1.35rem; font-weight: 700; margin-bottom: 0.15rem; }
+.painel-coord__cadernos-sub { font-size: 0.85rem; color: #6c757d; margin-bottom: 0; }
+.painel-coord__cadernos-ordem { font-size: 0.85rem; color: #6c757d; }
+
+/* Tabela */
+.painel-coord__tabela thead th {
+  background-color: #f5f6f8;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #495057;
+  padding: 0.8rem 1.25rem;
+  white-space: nowrap;
+}
+.painel-coord__tabela td { padding: 1rem 1.25rem; }
+.painel-coord__tabela tbody tr:last-child td { border-bottom: none; }
+
+/* Célula "Nome do Caderno": ícone + título + subtítulo */
+.caderno-nome { display: flex; align-items: center; gap: 0.9rem; min-width: 220px; }
+.caderno-nome__titulo { display: block; font-weight: 700; color: #212529; }
+.caderno-nome__sub { display: block; font-size: 0.85rem; color: #6c757d; }
+
+@media (max-width: 575.98px) {
+  .painel-coord__cadernos-topo { padding: 1.15rem 1rem 0.75rem; }
+}
