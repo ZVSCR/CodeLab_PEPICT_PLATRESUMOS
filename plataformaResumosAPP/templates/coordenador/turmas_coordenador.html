@@ -1,51 +1,85 @@
 {% extends 'base_app.html' %}
 
-{% block nome_pagina %}Gestão de Semestres e Turmas{% endblock %}
+{% block nome_pagina %}Painel do Coordenador{% endblock %}
 
 {% block content %}
-    <p><a href="{% url 'dashboard_coordenador' %}">&larr; Voltar ao Dashboard</a></p>
-
-    <p>Veja abaixo a divisão das turmas e a respectiva gerência de Caderno de resumos configuradas para cada semestre.</p>
+    {# (A) Cabeçalho da página #}
+    <div class="painel-coord__cabecalho">
+        <a href="{% url 'dashboard_coordenador' %}" class="painel-coord__voltar">&larr; Voltar ao Dashboard</a>
+        <p class="painel-coord__sobretitulo mt-4">Painel de Turmas Vigentes</p>
+        <h2 class="painel-coord__titulo">Gestão de Semestres e Turmas</h2>
+        <p class="painel-coord__sub">As turmas estão organizadas por semestre. Consulte os resumos aprovados e gerencie os projetos que compõem o Caderno de Resumos de cada período.</p>
+    </div>
 
     {% for semestre in semestres %}
-        <div>
-            <h2>{{ semestre.ano }}/{{ semestre.semestre }}º Semestre</h2>
+        {% with turmas=semestre.turmas.all revista=semestre.revista %}
 
-            {% if semestre.revista %}
-                <div>
-                    <p><strong>Caderno de Resumos Associado:</strong> {{ semestre.revista.titulo }}</p>
-                    <p><strong>Status:</strong> {{ semestre.revista.projetos_revista.count }} projeto(s) associado(s).</p>
-
-                    {% if semestre.revista.projetos_revista.count > 0 %}
-                        <p>
-                            <a href="{% url 'pdf_revista' semestre.revista.id %}">
-                                <button type="button">Gerar PDF desta Revista</button>
-                            </a>
-                        </p>
-                    {% endif %}
+        {# (B) Card do semestre + caderno associado #}
+        <section class="coord-card semestre-card" aria-labelledby="semestre-{{ semestre.pk }}">
+            <div class="semestre-card__topo">
+                <div class="caderno-nome">
+                    <span class="stat-card__icone" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                    </span>
+                    <span>
+                        <h3 id="semestre-{{ semestre.pk }}" class="semestre-card__titulo">{{ semestre.ano }}/{{ semestre.semestre }}º Semestre</h3>
+                        <span class="caderno-nome__sub">
+                            {% if revista %}Caderno de Resumos Associado: {{ revista.titulo }}
+                            {% else %}Nenhum caderno vinculado a este semestre ainda{% endif %}
+                        </span>
+                    </span>
                 </div>
-            {% else %}
-                <p>Nenhuma revista vinculada a este semestre ainda.</p>
-            {% endif %}
 
-            <h3>Turmas Cadastradas neste Semestre:</h3>
-            {% if semestre.turmas.all %}
-                <ul>
-                    {% for turma in semestre.turmas.all %}
-                        <li>
-                            {{ turma.nome_turma }} &mdash; {{ turma.disciplina }} ({{ turma.curso }})
-                            <a href="{% url 'projetos_aprovados' turma.pk %}">
-                                <button type="button">Ver Resumos Aprovados</button>
-                            </a>
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p><em>Nenhuma turma cadastrada para este período.</em></p>
-            {% endif %}
-        </div>
-        <hr>
+                {% if revista and semestre.num_projetos_revista > 0 %}
+                    <a href="{% url 'pdf_revista' revista.id %}" class="btn btn-dark btn-sm px-3">Gerar PDF desta Revista</a>
+                {% endif %}
+            </div>
+
+            <div class="semestre-card__rodape">
+                <strong>Status: {{ semestre.num_projetos_revista }} projeto(s) associado(s)</strong>
+                <span class="semestre-card__resumo">
+                    {{ turmas|length }} turma{{ turmas|length|pluralize }} ·
+                    {{ semestre.num_aprovados }} resumo{{ semestre.num_aprovados|pluralize }} aprovado{{ semestre.num_aprovados|pluralize }} ·
+                    período {{ semestre.ano }}.{{ semestre.semestre }}
+                </span>
+            </div>
+        </section>
+
+        {# (C) Lista de turmas do semestre #}
+        <section class="coord-card turmas-card">
+            <div class="painel-coord__cadernos-topo">
+                <div>
+                    <h3 class="painel-coord__cadernos-titulo">Turmas Cadastradas neste Semestre:</h3>
+                    <p class="painel-coord__cadernos-sub">Consulte os projetos homologados de cada turma e sua inclusão na revista.</p>
+                </div>
+            </div>
+
+            <ul class="list-unstyled mb-0">
+                {% for turma in turmas %}
+                    <li class="turma-item">
+                        <div class="caderno-nome">
+                            <span class="stat-card__icone" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                            </span>
+                            <span>
+                                <span class="caderno-nome__titulo">Turma {{ turma.nome_turma }} &mdash; {{ turma.disciplina }}</span>
+                                <span class="caderno-nome__sub">({{ turma.curso }}) · Prof(a). {{ turma.responsavel.get_full_name|default:turma.responsavel.username }}</span>
+                                <span class="caderno-nome__sub">
+                                    {{ turma.num_aprovados }} resumo(s) aprovado(s)
+                                    {% if revista %}· {{ turma.num_na_revista }} incluído(s) na {{ revista.titulo }}{% endif %}
+                                </span>
+                            </span>
+                        </div>
+                        <a href="{% url 'projetos_aprovados' turma.pk %}" class="btn btn-light border btn-sm px-3">Ver Resumos Aprovados</a>
+                    </li>
+                {% empty %}
+                    <li class="turma-item turma-item--vazia">Nenhuma turma cadastrada para este período.</li>
+                {% endfor %}
+            </ul>
+        </section>
+
+        {% endwith %}
     {% empty %}
-        <p>Nenhum semestre cadastrado no sistema.</p>
+        <div class="coord-card p-4 text-center text-secondary">Nenhum semestre cadastrado no sistema.</div>
     {% endfor %}
 {% endblock %}

@@ -912,3 +912,67 @@ body {
 @media (max-width: 575.98px) {
   .painel-coord__cadernos-topo { padding: 1.15rem 1rem 0.75rem; }
 }
+
+
+/* ======================================================================
+   GESTÃO DE SEMESTRES E TURMAS (coordenador)
+   Reaproveita: .painel-coord__*, .caderno-nome, .stat-card__icone
+   ====================================================================== */
+.painel-coord__voltar {
+  color: #212529;
+  font-size: 0.95rem;
+  text-decoration: none;
+}
+.painel-coord__voltar:hover { text-decoration: underline; color: #000000; }
+
+/* Card branco genérico do coordenador */
+.coord-card {
+  background-color: #ffffff;
+  border: 1px solid #e3e6ea;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  margin-bottom: 1.5rem;
+}
+
+/* Card do semestre */
+.semestre-card { padding: 1.5rem 1.25rem 1.25rem; }
+.semestre-card__topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #eceef1;
+}
+.semestre-card__titulo { font-size: 1.35rem; font-weight: 600; margin-bottom: 0.25rem; }
+.semestre-card__rodape {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  flex-wrap: wrap;
+  padding-top: 1.1rem;
+  font-size: 0.95rem;
+}
+.semestre-card__resumo { font-size: 0.85rem; color: #6c757d; }
+
+/* Linha de turma */
+.turma-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1.1rem 1.25rem;
+  border-top: 1px solid #eceef1;
+}
+.turma-item .caderno-nome { min-width: 0; }
+.turma-item--vazia { color: #6c757d; font-style: italic; }
+
+@media (max-width: 575.98px) {
+  .semestre-card { padding: 1.15rem 1rem 1rem; }
+  .turma-item { padding: 1rem; }
+  .turma-item .btn { width: 100%; }
+}

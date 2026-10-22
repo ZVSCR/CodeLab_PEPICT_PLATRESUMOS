@@ -10,7 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, HttpResponseForbidden
 from .models import Turma, Semestre, Inscricao, Projeto, Programa, ODS, Submissao, Revista, ProjetoRevista,Usuario
 from django.db import IntegrityError
-from django.db.models import Count
+from django.db.models import Count, F, Prefetch, Q
 
 User = get_user_model()
 
@@ -351,8 +351,33 @@ def turmas_coordenador_view(request):
     if request.user.tipo_usuario != 3:
         return HttpResponseForbidden()
  
-    semestres = Semestre.objects.prefetch_related('turmas').order_by('-ano', '-semestre')
- 
+    # Cada turma já vem com: professor, nº de resumos aprovados e
+    # quantos deles estão na revista do próprio semestre
+    turmas = (
+        Turma.objects
+        .select_related('responsavel')
+        .annotate(
+            num_aprovados=Count('projetos', filter=Q(projetos__status_projeto=2), distinct=True),
+            num_na_revista=Count(
+                'projetos__revistas',
+                filter=Q(projetos__revistas__revista__semestre=F('semestre')),
+                distinct=True,
+            ),
+        )
+        .order_by('nome_turma')
+    )
+
+    semestres = (
+        Semestre.objects
+        .select_related('revista')
+        .prefetch_related(Prefetch('turmas', queryset=turmas))
+        .annotate(
+            num_projetos_revista=Count('revista__projetos_revista', distinct=True),
+            num_aprovados=Count('turmas__projetos', filter=Q(turmas__projetos__status_projeto=2), distinct=True),
+        )
+        .order_by('-ano', '-semestre')
+    )
+
     return render(request, 'coordenador/turmas_coordenador.html', {
         'semestres': semestres,
     })
