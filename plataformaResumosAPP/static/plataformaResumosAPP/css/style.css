@@ -28,19 +28,19 @@ body {
   flex-wrap: wrap;
 }
 
-.app-header__logo-placeholder {
-  font-weight: 700;
-  font-size: 1.25rem;
-  letter-spacing: 1px;
-  border: 2px solid var(--cor-institucional-texto);
-  padding: 0.15rem 0.5rem;
-  border-radius: 4px;
+/* Logo da UNIFESP no cabeçalho */
+.app-header__brand {
+  display: flex;
+  align-items: center;
 }
-
-/* Quando trocar o placeholder por <img>, ela respeita esta altura */
 .app-header__logo {
-  height: 40px;
+  height: 52px;
   width: auto;
+}
+@media (max-width: 575.98px) {
+  .app-header__logo {
+    height: 42px;
+  }
 }
 
 .app-header__page {
