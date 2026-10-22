@@ -36,7 +36,8 @@
     {% if request.user.tipo_usuario == 3 %}
         <form action="{% url 'projetos_aprovados' projeto.turma.id %}" method="POST">
             {% csrf_token %}
-            <input type="hidden" name="projetos_selecionados" value="{{ projeto.id }}">
+            <input type="hidden" name="projeto_id" value="{{ projeto.id }}">
+            <input type="hidden" name="incluir" value="1">
             <button type="submit">Adicionar ao caderno de resumos</button>
         </form>
     {% endif %}

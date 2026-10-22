@@ -1,31 +1,94 @@
 {% extends 'base_app.html' %}
 
-{% block nome_pagina %}Banco de Resumos Aprovados{% endblock %}
+{% block nome_pagina %}Painel do Coordenador{% endblock %}
 
 {% block content %}
-    <p><a href="{% url 'dashboard_coordenador' %}">&larr; Voltar ao Dashboard</a></p>
+    {# (A) Cabeçalho da página #}
+    <div class="painel-coord__cabecalho">
+        <a href="{% url 'turmas_coordenador' %}" class="painel-coord__voltar">&larr; Voltar às Turmas</a>
+        <p class="painel-coord__sobretitulo mt-4">Painel de Resumos Aprovados da Turma</p>
+        <h2 class="painel-coord__titulo">Banco de Resumos Aprovados</h2>
+        <p class="painel-coord__sub">As submissões desta turma estão homologadas e aptas para compor o Caderno de Resumos. Consulte os trabalhos e confira a seleção para a {{ revista.titulo }}.</p>
+    </div>
 
-    <p>Abaixo constam as submissões homologadas aptas para compor as edições dos Cadernos de Resumos.</p>
+    {# (B) Card com os dados da turma #}
+    <section class="coord-card semestre-card" aria-label="Dados da turma">
+        <div class="turma-info">
+            <div>
+                <span class="turma-info__rotulo">Unidade Curricular / Turma</span>
+                <span class="turma-info__valor">{{ turma.disciplina }} · {{ turma.nome_turma }}</span>
+            </div>
+            <div>
+                <span class="turma-info__rotulo">Curso de Graduação</span>
+                <span class="turma-info__valor">{{ turma.curso }}</span>
+            </div>
+            <div>
+                <span class="turma-info__rotulo">Semestre / Revista</span>
+                <span class="turma-info__valor">{{ turma.semestre.ano }}.{{ turma.semestre.semestre }} · {{ revista.titulo }}</span>
+            </div>
+        </div>
 
-    {% if projetos %}
-        <ul>
-            {% for projeto in projetos %}
-                <li>
-                    <p><a href="{% url 'projeto_leitura' projeto.id %}"><strong>{{ projeto.titulo_projeto }}</strong></a></p>
-                    <p>Autores: {{ projeto.nome_autores }}</p>
-                    <p>Turma/Disciplina: {{ projeto.turma.disciplina }} ({{ projeto.turma.nome_turma }})</p>
-                    <p>
-                        Programas:
-                        {% for prog in projeto.programa.all %}
-                            {{ prog.nome }}{% if not forloop.last %}, {% endif %}
-                        {% empty %}
-                            Nenhum cadastrado
-                        {% endfor %}
+        <div class="semestre-card__rodape">
+            <strong class="small">{{ projetos|length }} resumo{{ projetos|length|pluralize }} aprovado{{ projetos|length|pluralize }} nesta turma</strong>
+            <span class="semestre-card__resumo">
+                {{ total_incluidos }} incluído{{ total_incluidos|pluralize }} ·
+                {{ total_nao_incluidos }} não incluído{{ total_nao_incluidos|pluralize }} na {{ revista.titulo }}
+            </span>
+        </div>
+    </section>
+
+    {# (C) Lista de resumos homologados #}
+    <section aria-labelledby="titulo-resumos">
+        <div class="d-flex justify-content-between align-items-baseline flex-wrap gap-2 mb-2">
+            <h3 id="titulo-resumos" class="painel-coord__cadernos-titulo mb-0">Resumos homologados</h3>
+            <span class="painel-coord__cadernos-ordem">Mais recentes primeiro</span>
+        </div>
+
+        {% for projeto in projetos %}
+            <article class="coord-card resumo-card" id="projeto-{{ projeto.id }}">
+                <div class="resumo-card__corpo">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                        <a href="{% url 'projeto_leitura' projeto.id %}" class="resumo-card__titulo">{{ projeto.titulo_projeto }}</a>
+                        <span class="status-badge status-badge--aprovado">
+                            <span class="status-badge__dot" aria-hidden="true"></span>Homologado
+                        </span>
+                    </div>
+
+                    <p class="resumo-card__linha">Estudantes: {{ projeto.nome_autores }}</p>
+                    <p class="resumo-card__linha mb-3">Docente: {{ turma.responsavel.get_full_name|default:turma.responsavel.username }}</p>
+
+                    <p class="resumo-card__linha">Turma/Disciplina: {{ turma.nome_turma }} · UC {{ turma.disciplina }}</p>
+                    <p class="resumo-card__linha mb-0">
+                        Programa PEPICT:
+                        {% for prog in projeto.programa.all %}{{ prog.nome }}{% if not forloop.last %}, {% endif %}{% empty %}Nenhum cadastrado{% endfor %}
                     </p>
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>Não existem Resumos aprovados no sistema até o momento.</p>
-    {% endif %}
+                </div>
+
+                {# Interruptor: cada mudança envia o formulário e salva na hora #}
+                <form method="post" class="resumo-card__rodape">
+                    {% csrf_token %}
+                    <input type="hidden" name="projeto_id" value="{{ projeto.id }}">
+
+                    <div class="form-check form-switch m-0 d-flex align-items-center gap-3 ps-0">
+                        <input class="form-check-input resumo-card__switch m-0" type="checkbox" role="switch"
+                               name="incluir" value="1" id="incluir-{{ projeto.id }}"
+                               {% if projeto.na_revista %}checked{% endif %}
+                               onchange="this.form.submit()">
+                        <label class="form-check-label" for="incluir-{{ projeto.id }}">
+                            <span class="resumo-card__switch-titulo">Incluído no Caderno de Resumos</span>
+                            <span class="resumo-card__switch-sub">{{ revista.titulo }} · {% if projeto.na_revista %}Selecionado{% else %}Não selecionado{% endif %}</span>
+                        </label>
+                    </div>
+
+                    <noscript><button type="submit" class="btn btn-sm btn-dark">Salvar</button></noscript>
+
+                    {% if projeto.data_envio %}
+                        <span class="semestre-card__resumo">Enviado em {{ projeto.data_envio|date:"d/m/Y" }}</span>
+                    {% endif %}
+                </form>
+            </article>
+        {% empty %}
+            <div class="coord-card p-4 text-center text-secondary">Esta turma ainda não tem resumos aprovados.</div>
+        {% endfor %}
+    </section>
 {% endblock %}

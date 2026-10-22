@@ -1,193 +1,258 @@
 {% extends 'base_app.html' %}
 
-{% block nome_pagina %}Resumo do Projeto{% endblock %}
+{% block nome_pagina %}Resumo Estruturado{% endblock %}
 
 {% block content %}
     {# (A) Cabeçalho da página #}
-    <div class="relatorio__cabecalho">
+    <a href="{% url 'dashboard_aluno' %}" class="painel-coord__voltar">&larr; Voltar ao painel</a>
+
+    <div class="rs-cabecalho mt-4">
         <div>
-            <p class="relatorio__sobretitulo">{{ projeto.turma.nome_turma }}</p>
-            <h2 class="relatorio__titulo">Resumo do Projeto</h2>
-            <p class="relatorio__sub">
+            <p class="painel-coord__sobretitulo">{{ projeto.turma.disciplina }}</p>
+            <h2 class="painel-coord__titulo">Resumo Estruturado</h2>
+            <p class="painel-coord__sub rs-cabecalho__sub">
                 {% if editavel %}
-                    Preencha as seções do resumo, salve e envie para a análise do docente.
+                    Organize as informações essenciais do projeto em blocos claros. Você pode salvar o rascunho e continuar depois.
                 {% else %}
-                    Leia o resumo enviado e acompanhe o parecer do docente ao final.
+                    Leia o resumo enviado e acompanhe o parecer do docente ao final da página.
                 {% endif %}
             </p>
         </div>
-        <a href="{% url 'dashboard_aluno' %}" class="relatorio__voltar">Voltar ao painel</a>
+
+        <div class="rs-cabecalho__status">
+            {% if projeto.status_projeto == 0 %}
+                <span class="status-badge status-badge--rascunho"><span class="status-badge__dot" aria-hidden="true"></span>Rascunho</span>
+            {% elif projeto.status_projeto == 1 %}
+                <span class="status-badge status-badge--analise"><span class="status-badge__dot" aria-hidden="true"></span>Em análise</span>
+            {% elif projeto.status_projeto == 2 %}
+                <span class="status-badge status-badge--aprovado"><span class="status-badge__dot" aria-hidden="true"></span>Aprovado</span>
+            {% else %}
+                <span class="status-badge status-badge--rejeitado"><span class="status-badge__dot" aria-hidden="true"></span>Rejeitado</span>
+            {% endif %}
+            {% if submissao %}
+                <span class="rs-cabecalho__salvo">Enviado em {{ submissao.data_submissao|date:"d/m/Y" }}</span>
+            {% endif %}
+        </div>
     </div>
+
+    {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors|join:" " }}</div>
+    {% endif %}
 
     <div class="row g-4 align-items-start">
 
-        {# (B) Card principal: dados do projeto #}
+        {# (B) Coluna principal: os blocos do resumo #}
         <div class="col-lg-8">
-            <section class="relatorio-card" aria-labelledby="titulo-dados">
-                <h3 id="titulo-dados" class="relatorio-card__titulo">Dados do Projeto</h3>
+            <form method="POST" id="form-relatorio">
+                {% csrf_token %}
 
-                <form method="POST" id="form-relatorio">
-                    {% csrf_token %}
-
-                    {# --- Metadados --- #}
-                    <div class="relatorio-meta">
-                        <div class="relatorio-meta__item relatorio-meta__item--cheio">
-                            {% if editavel %}
-                                <label for="{{ form.titulo_projeto.id_for_label }}" class="relatorio-meta__rotulo">Título</label>
-                                {{ form.titulo_projeto }}
-                                {% if form.titulo_projeto.errors %}<p class="relatorio-erro">{{ form.titulo_projeto.errors|join:" " }}</p>{% endif %}
-                            {% else %}
-                                <p class="relatorio-meta__rotulo">Título</p>
-                                <p class="relatorio-meta__titulo-projeto">{{ projeto.titulo_projeto }}</p>
-                            {% endif %}
-                        </div>
-
-                        <div class="relatorio-meta__item">
-                            <p class="relatorio-meta__rotulo">Aluno</p>
-                            <p class="relatorio-meta__valor">
-                                {{ user.get_full_name|default:user.username }}{% if user.ra %} · RA {{ user.ra }}{% endif %}
-                            </p>
-                        </div>
-
-                        <div class="relatorio-meta__item">
-                            <p class="relatorio-meta__rotulo">Turma</p>
-                            <p class="relatorio-meta__valor">{{ projeto.turma.nome_turma }} · {{ projeto.turma.semestre }}</p>
-                        </div>
-
-                        <div class="relatorio-meta__item relatorio-meta__item--cheio">
-                            {% if editavel %}
-                                <label for="{{ form.nome_autores.id_for_label }}" class="relatorio-meta__rotulo">Autores</label>
-                                <p class="relatorio-ajuda">Nome completo dos(as) estudantes e docente(s) responsável(eis).</p>
-                                {{ form.nome_autores }}
-                                {% if form.nome_autores.errors %}<p class="relatorio-erro">{{ form.nome_autores.errors|join:" " }}</p>{% endif %}
-                            {% else %}
-                                <p class="relatorio-meta__rotulo">Autores</p>
-                                <p class="relatorio-meta__valor">{{ projeto.nome_autores }}</p>
-                            {% endif %}
-                        </div>
-
-                        <div class="relatorio-meta__item relatorio-meta__item--cheio">
-                            <p class="relatorio-meta__rotulo">Programas PEPICT</p>
-                            {% if editavel %}
-                                <p class="relatorio-ajuda">Selecione o programa PEPICT vinculado ao projeto.</p>
-                                <div class="relatorio-opcoes">{{ form.programa }}</div>
-                                {% if form.programa.errors %}<p class="relatorio-erro">{{ form.programa.errors|join:" " }}</p>{% endif %}
-                            {% else %}
-                                <p class="relatorio-meta__valor">
-                                    {% for p in projeto.programa.all %}{{ p.nome }}{% if not forloop.last %}<br>{% endif %}{% empty %}—{% endfor %}
-                                </p>
-                            {% endif %}
-                        </div>
-
-                        <div class="relatorio-meta__item relatorio-meta__item--cheio">
-                            <p class="relatorio-meta__rotulo">ODSs vinculados</p>
-                            {% if editavel %}
-                                <p class="relatorio-ajuda">Selecione de 1 a 3 ODS.</p>
-                                <div class="relatorio-opcoes relatorio-opcoes--grade">{{ form.ods }}</div>
-                                {% if form.ods.errors %}<p class="relatorio-erro">{{ form.ods.errors|join:" " }}</p>{% endif %}
-                            {% else %}
-                                <p class="relatorio-meta__valor">
-                                    {% for o in projeto.ods.all %}{{ o }}{% if not forloop.last %}<br>{% endif %}{% empty %}—{% endfor %}
-                                </p>
-                            {% endif %}
+                {# 1. Identificação #}
+                <section class="rs-card" id="secao-identificacao" data-secao="identificacao" aria-labelledby="titulo-identificacao">
+                    <div class="rs-card__topo">
+                        <span class="rs-card__numero" aria-hidden="true">1</span>
+                        <div>
+                            <h3 id="titulo-identificacao" class="rs-card__titulo">Identificação</h3>
+                            <p class="rs-card__sub">Dê um título claro para localizar este resumo no painel.</p>
                         </div>
                     </div>
 
-                    {# --- Seções do resumo --- #}
+                    {% if editavel %}
+                        {% include 'aluno/_relatorio_secao.html' with titulo="Título do resumo" campo=form.titulo_projeto ajuda="Use um título curto, específico e fiel ao projeto desenvolvido." %}
+                        {% include 'aluno/_relatorio_secao.html' with titulo="Autores" campo=form.nome_autores ajuda="Nome completo dos(as) estudantes e docente(s) responsável(eis)." %}
+                    {% else %}
+                        {% include 'aluno/_relatorio_secao.html' with titulo="Título do resumo" texto=projeto.titulo_projeto %}
+                        {% include 'aluno/_relatorio_secao.html' with titulo="Autores" texto=projeto.nome_autores %}
+                    {% endif %}
+                </section>
+
+                {# 2. Características do estudo: programa PEPICT + ODS #}
+                <section class="rs-card" id="secao-caracteristicas" data-secao="caracteristicas" aria-labelledby="titulo-caracteristicas">
+                    <div class="rs-card__topo">
+                        <span class="rs-card__numero" aria-hidden="true">2</span>
+                        <div>
+                            <h3 id="titulo-caracteristicas" class="rs-card__titulo">Características do estudo</h3>
+                            <p class="rs-card__sub">Selecione o programa PEPICT e de 1 a 3 ODS relacionados ao projeto.</p>
+                        </div>
+                    </div>
+
+                    {# Programa PEPICT #}
+                    <div class="rs-campo" data-campo{% if not editavel %} data-preenchido="{% if projeto.programa.exists %}1{% else %}0{% endif %}"{% endif %}>
+                        <p class="rs-campo__rotulo">Programa PEPICT</p>
+                        <div class="rs-opcoes">
+                            {% if editavel %}
+                                {% for opt in form.programa %}
+                                    <label class="rs-opcao" for="{{ opt.id_for_label }}">
+                                        <span class="rs-opcao__linha">{{ opt.tag }} {{ opt.choice_label }}</span>
+                                    </label>
+                                {% endfor %}
+                            {% else %}
+                                {% for prog in projeto.programa.all %}
+                                    <div class="rs-opcao rs-opcao--marcada"><span class="rs-opcao__linha">{{ prog.nome }}</span></div>
+                                {% empty %}
+                                    <p class="rs-campo__texto mb-0">—</p>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        {% if form.programa.errors %}<p class="rs-erro">{{ form.programa.errors|join:" " }}</p>{% endif %}
+                    </div>
+
+                    {# ODS #}
+                    <div class="rs-campo" data-campo{% if not editavel %} data-preenchido="{% if projeto.ods.exists %}1{% else %}0{% endif %}"{% endif %}>
+                        <div class="d-flex justify-content-between align-items-baseline gap-2">
+                            <p class="rs-campo__rotulo">ODS vinculados</p>
+                            {% if editavel %}<span class="rs-contador" id="contador-ods" aria-live="polite"></span>{% endif %}
+                        </div>
+                        <div class="rs-opcoes">
+                            {% if editavel %}
+                                {# opt.data.value.instance = o objeto ODS (número e nome separados) #}
+                                {% for opt in form.ods %}
+                                    <label class="rs-opcao" for="{{ opt.id_for_label }}">
+                                        <span class="rs-opcao__linha">{{ opt.tag }} ODS {{ opt.data.value.instance.numero }}</span>
+                                        <span class="rs-opcao__sub">{{ opt.data.value.instance.nome }}</span>
+                                    </label>
+                                {% endfor %}
+                            {% else %}
+                                {% for o in projeto.ods.all %}
+                                    <div class="rs-opcao rs-opcao--marcada">
+                                        <span class="rs-opcao__linha">ODS {{ o.numero }}</span>
+                                        <span class="rs-opcao__sub">{{ o.nome }}</span>
+                                    </div>
+                                {% empty %}
+                                    <p class="rs-campo__texto mb-0">—</p>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        {% if form.ods.errors %}<p class="rs-erro">{{ form.ods.errors|join:" " }}</p>{% endif %}
+                    </div>
+                </section>
+
+                {# 3. Conteúdo estruturado #}
+                <section class="rs-card" id="secao-conteudo" data-secao="conteudo" aria-labelledby="titulo-conteudo">
+                    <div class="rs-card__topo">
+                        <span class="rs-card__numero" aria-hidden="true">3</span>
+                        <div>
+                            <h3 id="titulo-conteudo" class="rs-card__titulo">Conteúdo estruturado</h3>
+                            <p class="rs-card__sub">Preencha cada bloco com suas próprias palavras, mantendo precisão e objetividade.</p>
+                        </div>
+                    </div>
+
                     {% if editavel %}
                         {% include 'aluno/_relatorio_secao.html' with titulo="Objetivos" campo=form.objetivos_trabalho ajuda="Descreva o objetivo geral da atividade e o contexto/motivação." %}
                         {% include 'aluno/_relatorio_secao.html' with titulo="Metodologia" campo=form.metodologia_projeto ajuda="Explique as etapas do trabalho e como se deu a interação com a comunidade (ou justifique a proposta, caso não tenha interação)." %}
                         {% include 'aluno/_relatorio_secao.html' with titulo="Resultados" campo=form.resultados_projeto ajuda="Liste os produtos gerados (protótipos, oficinas, relatórios, etc.) e os resultados alcançados." %}
-                        {% include 'aluno/_relatorio_secao.html' with titulo="Justificativa ODS" campo=form.justificativa_ods ajuda="Indique até 3 ODS trabalhados e justifique como o trabalho contribuiu com cada um deles." %}
+                        {% include 'aluno/_relatorio_secao.html' with titulo="Justificativa ODS" campo=form.justificativa_ods ajuda="Justifique como o trabalho contribuiu com cada um dos ODS selecionados." %}
                         {% include 'aluno/_relatorio_secao.html' with titulo="Reflexão" campo=form.reflexao_projeto ajuda="Relate os principais aprendizados, desafios e percepções sobre a extensão universitária." %}
-                        {% include 'aluno/_relatorio_secao.html' with titulo="Referências" campo=form.referencia_projeto ajuda="Inclua as fontes bibliográficas utilizadas (se houver, no formato ABNT)." %}
                     {% else %}
                         {% include 'aluno/_relatorio_secao.html' with titulo="Objetivos" texto=projeto.objetivos_trabalho %}
                         {% include 'aluno/_relatorio_secao.html' with titulo="Metodologia" texto=projeto.metodologia_projeto %}
                         {% include 'aluno/_relatorio_secao.html' with titulo="Resultados" texto=projeto.resultados_projeto %}
                         {% include 'aluno/_relatorio_secao.html' with titulo="Justificativa ODS" texto=projeto.justificativa_ods %}
                         {% include 'aluno/_relatorio_secao.html' with titulo="Reflexão" texto=projeto.reflexao_projeto %}
-                        {% if projeto.referencia_projeto %}
-                            {% include 'aluno/_relatorio_secao.html' with titulo="Referências" texto=projeto.referencia_projeto %}
-                        {% endif %}
                     {% endif %}
-                </form>
-            </section>
-        </div>
+                </section>
 
-        {# (C) Card lateral: submissão #}
-        <div class="col-lg-4">
-            <aside class="relatorio-lateral" aria-labelledby="titulo-submissao">
-                <h3 id="titulo-submissao" class="relatorio-lateral__titulo">Submissão</h3>
+                {# 4. Referência #}
+                <section class="rs-card" id="secao-referencia" data-secao="referencia" aria-labelledby="titulo-referencia">
+                    <div class="rs-card__topo">
+                        <span class="rs-card__numero" aria-hidden="true">4</span>
+                        <div>
+                            <h3 id="titulo-referencia" class="rs-card__titulo">Referência</h3>
+                            <p class="rs-card__sub">Inclua as fontes bibliográficas utilizadas, se houver, no formato ABNT.</p>
+                        </div>
+                    </div>
 
-                {% if projeto.status_projeto == 0 %}
-                    <span class="status-badge status-badge--rascunho"><span class="status-badge__dot"></span>Rascunho</span>
-                {% elif projeto.status_projeto == 1 %}
-                    <span class="status-badge status-badge--analise"><span class="status-badge__dot"></span>Em análise</span>
-                {% elif projeto.status_projeto == 2 %}
-                    <span class="status-badge status-badge--aprovado"><span class="status-badge__dot"></span>Aprovado</span>
-                {% else %}
-                    <span class="status-badge status-badge--rejeitado"><span class="status-badge__dot"></span>Rejeitado</span>
-                {% endif %}
-
-                <div class="relatorio-lateral__item">
-                    <p class="relatorio-meta__rotulo">Enviado em</p>
-                    <p class="relatorio-meta__valor">
-                        {% if submissao %}{{ submissao.data_submissao|date:"d b. Y, à\s H:i" }}{% else %}Ainda não enviado{% endif %}
-                    </p>
-                </div>
-
-                <div class="relatorio-lateral__item">
-                    <p class="relatorio-meta__rotulo">Docente responsável</p>
-                    <p class="relatorio-meta__valor">{{ projeto.turma.responsavel.get_full_name|default:projeto.turma.responsavel.username }}</p>
-                </div>
-
-                <div class="relatorio-lateral__acoes">
                     {% if editavel %}
-                        {# form="form-relatorio" liga este botão ao formulário do card principal #}
-                        <button type="submit" form="form-relatorio" class="btn btn-outline-dark btn-sm w-100">Salvar rascunho</button>
-                        <form action="{% url 'submissao_projeto' projeto.id %}" method="POST">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-dark btn-sm w-100">Enviar para análise</button>
-                        </form>
-                    {% endif %}
-                    <a href="{% url 'pdf_resumo' projeto.id %}" class="btn btn-light btn-sm w-100 relatorio-lateral__pdf">Baixar PDF do Resumo</a>
-                </div>
-
-                <div class="relatorio-lateral__aviso">
-                    {% if editavel %}
-                        <p class="relatorio-lateral__aviso-titulo">Edição liberada</p>
-                        <p class="mb-0">Salve antes de enviar: o envio usa a última versão salva. Depois de enviado, o resumo fica bloqueado até a decisão do docente.</p>
+                        {% include 'aluno/_relatorio_secao.html' with titulo="Referências bibliográficas" campo=form.referencia_projeto %}
                     {% else %}
-                        <p class="relatorio-lateral__aviso-titulo">Somente leitura</p>
-                        <p class="mb-0">O resumo preserva a versão enviada para análise e não pode ser alterado neste momento.</p>
+                        {% include 'aluno/_relatorio_secao.html' with titulo="Referências bibliográficas" texto=projeto.referencia_projeto %}
                     {% endif %}
-                </div>
-            </aside>
+                </section>
+            </form>
         </div>
 
+        {# (C) Coluna lateral: progresso + ações #}
+        <div class="col-lg-4">
+            <div class="rs-lateral">
+                <aside class="rs-card rs-progresso" aria-labelledby="titulo-progresso">
+                    <h3 id="titulo-progresso" class="rs-progresso__titulo">Progresso do resumo</h3>
+                    <div class="rs-progresso__barra-linha">
+                        <div class="rs-progresso__barra" role="progressbar" aria-label="Progresso do resumo"
+                             aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="barra-progresso">
+                            <div class="rs-progresso__preenchido" id="barra-preenchida"></div>
+                        </div>
+                        <span class="rs-progresso__pct" id="pct-progresso">0%</span>
+                    </div>
+
+                    <ul class="rs-progresso__lista">
+                        {% for id, nome in secoes_progresso %}
+                            <li class="rs-progresso__item" data-progresso="{{ id }}" data-estado="vazio">
+                                <a href="#secao-{{ id }}">
+                                    <span class="rs-progresso__icone" aria-hidden="true">
+                                        <svg class="icone-vazio" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle></svg>
+                                        <svg class="icone-parcial" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polygon points="10 8 16 12 10 16 10 8" fill="currentColor"></polygon></svg>
+                                        <svg class="icone-completo" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="8 12.5 11 15.5 16.5 9.5"></polyline></svg>
+                                    </span>
+                                    {{ nome }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+
+                    <div class="rs-dica">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"></path></svg>
+                        Escreva com suas palavras e confira se cada afirmação pode ser localizada no projeto desenvolvido.
+                    </div>
+                </aside>
+
+                <aside class="rs-card rs-acoes" aria-label="Envio do resumo">
+                    <div class="rs-acoes__item">
+                        <span class="rs-acoes__rotulo">Docente responsável</span>
+                        <span class="rs-acoes__valor">{{ projeto.turma.responsavel.get_full_name|default:projeto.turma.responsavel.username }}</span>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        {% if editavel %}
+                            {# form="form-relatorio" liga este botão ao formulário da coluna principal #}
+                            <button type="submit" form="form-relatorio" class="btn btn-outline-dark btn-sm">Salvar rascunho</button>
+                            <form action="{% url 'submissao_projeto' projeto.id %}" method="POST" class="d-grid">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-dark btn-sm">Enviar para análise</button>
+                            </form>
+                        {% endif %}
+                        <a href="{% url 'pdf_resumo' projeto.id %}" class="btn btn-light border btn-sm">Baixar PDF do Resumo</a>
+                    </div>
+
+                    <div class="rs-aviso">
+                        {% if editavel %}
+                            <p class="rs-aviso__titulo">Edição liberada</p>
+                            <p class="mb-0">Salve antes de enviar: o envio usa a última versão salva. Depois de enviado, o resumo fica bloqueado até a decisão do docente.</p>
+                        {% else %}
+                            <p class="rs-aviso__titulo">Somente leitura</p>
+                            <p class="mb-0">O resumo preserva a versão enviada para análise e não pode ser alterado neste momento.</p>
+                        {% endif %}
+                    </div>
+                </aside>
+            </div>
+        </div>
     </div>
 
     {# (D) Avaliação do resumo (parecer do docente) #}
-    <section class="relatorio-card relatorio-avaliacao" aria-labelledby="titulo-avaliacao">
-        <h3 id="titulo-avaliacao" class="relatorio-card__titulo mb-1">Avaliação do resumo</h3>
-        <p class="relatorio__sub mb-3">Orientações registradas pelo docente sobre o seu resumo.</p>
+    <section class="rs-card mt-3" aria-labelledby="titulo-avaliacao">
+        <h3 id="titulo-avaliacao" class="rs-card__titulo">Avaliação do resumo</h3>
+        <p class="rs-card__sub mb-3">Orientações registradas pelo docente sobre o seu resumo.</p>
 
-        <p class="relatorio-meta__rotulo relatorio-avaliacao__rotulo">Feedback / Parecer</p>
-
+        <p class="rs-campo__rotulo">Feedback / Parecer</p>
         {% if submissao and submissao.resultado_submissao != 0 %}
-            <p class="relatorio-ajuda">
-                Resultado: <strong>{{ submissao.get_resultado_submissao_display }}</strong>
-            </p>
-            <div class="relatorio-avaliacao__caixa">{{ submissao.feedback|default:"Nenhum feedback informado."|linebreaksbr }}</div>
+            <p class="rs-campo__ajuda">Resultado: <strong>{{ submissao.get_resultado_submissao_display }}</strong></p>
+            <div class="rs-avaliacao__caixa">{{ submissao.feedback|default:"Nenhum feedback informado."|linebreaksbr }}</div>
         {% else %}
-            <p class="relatorio-ajuda">O parecer será apresentado aqui junto com o resultado da avaliação.</p>
-            <div class="relatorio-avaliacao__caixa relatorio-avaliacao__caixa--vazia">
+            <p class="rs-campo__ajuda">O parecer será apresentado aqui junto com o resultado da avaliação.</p>
+            <div class="rs-avaliacao__caixa rs-avaliacao__caixa--vazia">
                 {% if projeto.status_projeto == 1 %}Aguardando o parecer do docente…{% else %}O resumo ainda não foi enviado para análise.{% endif %}
             </div>
         {% endif %}
 
-        <p class="relatorio-avaliacao__rodape">
+        <p class="rs-avaliacao__rodape">
             {% if projeto.status_projeto == 1 %}
                 A submissão permanece em análise até a decisão do docente.
             {% elif projeto.status_projeto == 3 %}
@@ -199,4 +264,57 @@
             {% endif %}
         </p>
     </section>
+
+    <script>
+    // Barra de progresso + limite de 3 ODS. Roda nos dois modos:
+    // na edição olha os inputs; na leitura usa o data-preenchido do template.
+    (function () {
+        var MAX_ODS = 3;
+        var form = document.getElementById('form-relatorio');
+        var odsInputs = Array.prototype.slice.call(document.querySelectorAll('input[name="ods"]'));
+        var contador = document.getElementById('contador-ods');
+
+        function preenchido(campo) {
+            if (campo.dataset.preenchido !== undefined) return campo.dataset.preenchido === '1';
+            var checks = campo.querySelectorAll('input[type="checkbox"]');
+            if (checks.length) return Array.prototype.some.call(checks, function (c) { return c.checked; });
+            var input = campo.querySelector('input[type="text"], textarea');
+            return !!input && input.value.trim() !== '';
+        }
+
+        function atualizarProgresso() {
+            var total = 0, ok = 0;
+            document.querySelectorAll('[data-secao]').forEach(function (secao) {
+                var campos = secao.querySelectorAll('[data-campo]');
+                var feitos = 0;
+                campos.forEach(function (c) { total++; if (preenchido(c)) { ok++; feitos++; } });
+                var item = document.querySelector('[data-progresso="' + secao.dataset.secao + '"]');
+                if (item) item.dataset.estado = feitos === 0 ? 'vazio' : (feitos === campos.length ? 'completo' : 'parcial');
+            });
+            var pct = total ? Math.round(ok * 100 / total) : 0;
+            document.getElementById('barra-preenchida').style.width = pct + '%';
+            document.getElementById('barra-progresso').setAttribute('aria-valuenow', pct);
+            document.getElementById('pct-progresso').textContent = pct + '%';
+        }
+
+        // Ao chegar em 3 ODS, as outras opções ficam bloqueadas até desmarcar uma
+        function limitarOds() {
+            if (!odsInputs.length) return;
+            var marcados = odsInputs.filter(function (c) { return c.checked; }).length;
+            odsInputs.forEach(function (c) {
+                var bloquear = !c.checked && marcados >= MAX_ODS;
+                c.disabled = bloquear;
+                c.closest('.rs-opcao').classList.toggle('is-desabilitada', bloquear);
+            });
+            if (contador) contador.textContent = marcados + ' de ' + MAX_ODS + ' selecionados';
+        }
+
+        if (form) {
+            form.addEventListener('input', atualizarProgresso);
+            form.addEventListener('change', function () { limitarOds(); atualizarProgresso(); });
+        }
+        limitarOds();
+        atualizarProgresso();
+    })();
+    </script>
 {% endblock %}
