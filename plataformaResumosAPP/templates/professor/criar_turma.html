@@ -3,19 +3,74 @@
 {% block nome_pagina %}Criar Nova Turma{% endblock %}
 
 {% block content %}
-    <form method="post">
-        {% csrf_token %}
+    {# (A) Cabeçalho da página — reaproveita o layout da Inscrição em Turma #}
+    <div class="inscricao__cabecalho">
+        <p class="inscricao__sobretitulo">Turmas</p>
+        <h2 class="inscricao__titulo">Cadastrar uma turma</h2>
+    </div>
 
-        {{ form.as_p }}
+    <div class="row g-4 align-items-start">
 
-        <button type="submit">
-            Criar Turma
-        </button>
-    </form>
+        {# (B) Card do formulário #}
+        <div class="col-lg-8">
+            <section class="inscricao-card" aria-labelledby="titulo-turma">
+                <div class="inscricao-card__topo">
+                    <span class="inscricao-card__icone" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                    </span>
+                    <div>
+                        <h3 id="titulo-turma" class="inscricao-card__titulo">Informações da turma</h3>
+                        <p class="inscricao-card__sub">Digite as informações necessárias.</p>
+                    </div>
+                </div>
 
-    <br>
+                <form method="post">
+                    {% csrf_token %}
 
-    <a href="{% url 'dashboard_professor' %}">
-        Voltar ao Dashboard
-    </a>
+                    {% for campo in form %}
+                        <div class="criar-turma__campo">
+                            <label for="{{ campo.id_for_label }}" class="inscricao-card__label">{{ campo.label }}</label>
+                            <input type="text"
+                                   name="{{ campo.html_name }}"
+                                   id="{{ campo.id_for_label }}"
+                                   value="{{ campo.value|default_if_none:'' }}"
+                                   {% if campo.field.max_length %}maxlength="{{ campo.field.max_length }}"{% endif %}
+                                   class="form-control inscricao-card__input{% if campo.errors %} is-invalid{% endif %}"
+                                   {% if campo.field.required %}required{% endif %}
+                                   {% if campo.errors %}aria-describedby="erro-{{ campo.html_name }}"{% endif %}>
+                            {% if campo.errors %}
+                                <div id="erro-{{ campo.html_name }}" class="invalid-feedback d-block">
+                                    {% for erro in campo.errors %}{{ erro }} {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+
+                    <div class="inscricao-card__acoes">
+                        <a href="{% url 'dashboard_professor' %}" class="inscricao-card__voltar">
+                            <span aria-hidden="true">&larr;</span>
+                            <span class="inscricao-card__voltar-texto">Voltar ao painel</span>
+                        </a>
+                        <button type="submit" class="btn btn-dark">Criar Turma</button>
+                    </div>
+                </form>
+            </section>
+        </div>
+
+        {# (C) Card de ajuda #}
+        <div class="col-lg-4">
+            <aside class="inscricao-ajuda" aria-labelledby="titulo-ajuda">
+                <span class="inscricao-ajuda__icone" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </span>
+                <h3 id="titulo-ajuda" class="inscricao-ajuda__titulo">Onde encontrar o código?</h3>
+                <p class="inscricao-ajuda__texto">Ele vai aparecer assim que o cadastro da turma for concluído, e fica visível no seu painel para compartilhar com os alunos.</p>
+                <p class="inscricao-ajuda__nota">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    <span>O cadastro só será concluído se as informações forem preenchidas corretamente.</span>
+                </p>
+            </aside>
+        </div>
+
+    </div>
 {% endblock %}

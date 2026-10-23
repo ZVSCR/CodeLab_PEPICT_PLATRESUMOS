@@ -106,10 +106,25 @@ def dashboard_professor(request):
     if request.user.tipo_usuario != 2:
         return HttpResponseForbidden()
     
-    lista_turmas = Turma.objects.filter(responsavel=request.user)
+    semestre_atual = Semestre.objects.order_by('-ano', '-semestre').first()
 
- 
-    return render(request, 'professor/dashboard_professor.html', {'lista_turmas':lista_turmas} )
+    # Semestre mais recente primeiro; cada turma já vem com o nº de resumos aguardando parecer
+    lista_turmas = (
+        Turma.objects
+        .filter(responsavel=request.user)
+        .select_related('semestre')
+        .annotate(num_em_analise=Count('projetos', filter=Q(projetos__status_projeto=1)))
+        .order_by('-semestre__ano', '-semestre__semestre', 'nome_turma')
+    )
+    projetos_professor = Projeto.objects.filter(turma__responsavel=request.user)
+
+    return render(request, 'professor/dashboard_professor.html', {
+        'lista_turmas': lista_turmas,
+        'semestre_atual': semestre_atual,
+        'stat_turmas': lista_turmas.filter(semestre=semestre_atual).count(),
+        'stat_em_analise': projetos_professor.filter(status_projeto=1).count(),
+        'stat_avaliados': projetos_professor.filter(status_projeto__in=[2, 3]).count(),
+    })
 
 
 @login_required

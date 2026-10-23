@@ -1,25 +1,113 @@
 {% extends 'base_app.html' %}
 
-{% block nome_pagina %}Dashboard do Professor{% endblock %}
+{% block nome_pagina %}Painel do Professor{% endblock %}
 
 {% block content %}
-    <ul>
+    {# (A) Saudação + ação primária — reaproveita .painel-coord__* #}
+    <div class="painel-turma__cabecalho">
+        <div>
+            <p class="painel-coord__sobretitulo">Painel do Professor</p>
+            <h2 class="painel-coord__titulo">Olá, {{ user.first_name|default:user.username }}.</h2>
+            <p class="painel-coord__sub">Acompanhe suas turmas e avalie os resumos enviados pelos alunos.</p>
+        </div>
+        <a href="{% url 'criar_turma' %}" class="btn btn-dark">Criar uma nova turma</a>
+    </div>
+
+    {# (B) Cards de estatística — reaproveita o .stat-card do Painel do Aluno #}
+    <section class="painel-coord__stats" aria-label="Resumo das suas turmas">
+        <div class="row row-cols-1 row-cols-sm-3 g-3">
+            <div class="col">
+                <div class="stat-card">
+                    <span class="stat-card__icone" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                    </span>
+                    <span class="stat-card__texto">
+                        <span class="stat-card__rotulo">Turmas</span>
+                        <span class="stat-card__linha">
+                            <span class="stat-card__valor">{{ stat_turmas }}</span>
+                            <span class="stat-card__qualificador">neste semestre</span>
+                        </span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="stat-card">
+                    <span class="stat-card__icone" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                    </span>
+                    <span class="stat-card__texto">
+                        <span class="stat-card__rotulo">Em análise</span>
+                        <span class="stat-card__linha">
+                            <span class="stat-card__valor">{{ stat_em_analise }}</span>
+                            <span class="stat-card__qualificador">aguardando parecer</span>
+                        </span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="stat-card">
+                    <span class="stat-card__icone" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+                    </span>
+                    <span class="stat-card__texto">
+                        <span class="stat-card__rotulo">Avaliados</span>
+                        <span class="stat-card__linha">
+                            <span class="stat-card__valor">{{ stat_avaliados }}</span>
+                            <span class="stat-card__qualificador">resumos com parecer</span>
+                        </span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# (C) Lista de turmas — card da tabela do coordenador + linha .turma-item #}
+    <section class="painel-coord__cadernos" aria-labelledby="titulo-turmas">
+        <div class="painel-coord__cadernos-topo">
+            <div>
+                <h2 id="titulo-turmas" class="painel-coord__cadernos-titulo">Minhas turmas</h2>
+                <p class="painel-coord__cadernos-sub">
+                    {{ lista_turmas|length }} turma{{ lista_turmas|length|pluralize }}{% if semestre_atual %} · semestre atual {{ semestre_atual.ano }}.{{ semestre_atual.semestre }}{% endif %}
+                </p>
+            </div>
+            <span class="painel-coord__cadernos-ordem">Mais recentes primeiro</span>
+        </div>
+
         {% for turma in lista_turmas %}
-            <li>
-                {{ turma.nome_turma }}
-                    <strong> (Código da turma: {{ turma.codigo_acesso }}) </strong>
-                <a href="{% url 'painel_turma' turma.pk %}">Entrar</a>
-            </li>
+            <div class="turma-item">
+                <div class="caderno-nome">
+                    <span class="stat-card__icone" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10L12 5 2 10l10 5 10-5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
+                    </span>
+                    <span>
+                        <span class="caderno-nome__titulo">
+                            {{ turma.nome_turma }}
+                            <span class="codigo-turma" title="Código de acesso da turma">{{ turma.codigo_acesso }}</span>
+                        </span>
+                        <span class="caderno-nome__sub">{{ turma.disciplina }} · {{ turma.curso }} · {{ turma.semestre.ano }}.{{ turma.semestre.semestre }}</span>
+                    </span>
+                </div>
+
+                <div class="turma-row__direita">
+                    {% if turma.num_em_analise %}
+                        <span class="status-badge status-badge--analise">
+                            <span class="status-badge__dot" aria-hidden="true"></span>{{ turma.num_em_analise }} em análise
+                        </span>
+                    {% else %}
+                        <span class="status-badge status-badge--aprovado">
+                            <span class="status-badge__dot" aria-hidden="true"></span>Em dia
+                        </span>
+                    {% endif %}
+                    <a href="{% url 'painel_turma' turma.pk %}" class="turma-row__acao">
+                        Visualizar Resumos
+                        <span class="turma-row__seta" aria-hidden="true">&rarr;</span>
+                    </a>
+                </div>
+            </div>
         {% empty %}
-            <li>Nenhuma turma encontrada.</li>
+            <div class="turma-item turma-item--vazia">Você ainda não tem turmas. Crie uma turma para receber os resumos dos alunos.</div>
         {% endfor %}
-    </ul>
-
-    <br>
-
-    <a href="{% url 'criar_turma' %}">
-        <button type="button">
-            Criar Nova Turma
-        </button>
-    </a>
+    </section>
 {% endblock %}
