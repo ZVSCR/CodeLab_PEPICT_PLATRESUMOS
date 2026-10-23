@@ -1075,3 +1075,30 @@ body {
 @media (max-width: 767.98px) {
   .turma-info { grid-template-columns: 1fr; }
 }
+
+
+/* ======================================================================
+   PAINEL DA TURMA (professor) — cabeçalho, dados da turma e tabela
+   Reaproveita: .painel-coord__*, .turma-info, .stat-card, .caderno-nome__*,
+   .status-badge, .turma-row__acao
+   ====================================================================== */
+
+/* Cabeçalho: título à esquerda, "Voltar ao Dashboard" à direita */
+.painel-turma__cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem 2rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.75rem;
+}
+
+/* Dados da turma soltos no fundo (sem a linha divisória do card) */
+.painel-turma__info {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 1.75rem;
+}
+
+/* Título do projeto na tabela */
+.painel-turma__projeto { display: block; font-weight: 600; color: #212529; }

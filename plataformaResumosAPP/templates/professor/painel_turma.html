@@ -3,53 +3,141 @@
 {% block nome_pagina %}{{ turma.nome_turma }}{% endblock %}
 
 {% block content %}
-    <p>
-        <strong>Disciplina:</strong> {{ turma.disciplina }} <br>
-        <strong>Curso:</strong> {{ turma.curso }}
-    </p>
+    {# (A) Cabeçalho da página — reaproveita .painel-coord__* #}
+    <div class="painel-turma__cabecalho">
+        <div>
+            <p class="painel-coord__sobretitulo">Painel da Turma</p>
+            <h2 class="painel-coord__titulo">{{ turma.disciplina }}</h2>
+            <p class="painel-coord__sub">Acompanhe as submissões e avalie os projetos da sua turma.</p>
+        </div>
+        <a href="{% url 'dashboard_professor' %}" class="painel-coord__voltar">Voltar ao Dashboard</a>
+    </div>
 
-    <h2>Resumos Submetidos</h2>
+    {# (B) Dados da turma #}
+    <div class="turma-info painel-turma__info">
+        <div>
+            <span class="turma-info__rotulo">Unidade Curricular</span>
+            <span class="turma-info__valor">{{ turma.disciplina }} · {{ turma.nome_turma }}</span>
+        </div>
+        <div>
+            <span class="turma-info__rotulo">Curso de Graduação</span>
+            <span class="turma-info__valor">{{ turma.curso }}</span>
+        </div>
+        <div>
+            <span class="turma-info__rotulo">Semestre</span>
+            <span class="turma-info__valor">{{ turma.semestre.ano }}.{{ turma.semestre.semestre }} · {{ turma.responsavel.get_full_name|default:turma.responsavel.username }}</span>
+        </div>
+    </div>
 
-    <table border="1" cellpadding="5">
-        <thead>
-            <tr>
-                <th>Aluno</th>
-                <th>Título do Projeto</th>
-                <th>Status</th>
-                <th>Ação</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for projeto in projetos %}
-                <tr>
-                    <td>
-                        {{ projeto.aluno.get_full_name|default:projeto.aluno.username }}
-                    </td>
-                    <td>{{ projeto.titulo_projeto }}</td>
-                    <td>{{ projeto.get_status_projeto_display }}</td>
-                    <td>
-                        {% if projeto.status_projeto == 1 %}
-                            <a href="{% url 'projeto_analise' projeto.pk %}">Analisar</a>
-                        {% elif projeto.status_projeto == 2 %}
-                            <a href="{% url 'projeto_analise' projeto.pk %}">Ver / Baixar PDF</a>
-                        {% else %}
-                            —
-                        {% endif %}
-                    </td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="4">
-                        Nenhum Resumo encontrado para esta turma.
-                    </td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    {# (C) Cards de estatística — reaproveita o .stat-card do Painel do Aluno #}
+    <section class="painel-coord__stats" aria-label="Resumo da turma">
+        <div class="row row-cols-1 row-cols-sm-3 g-3">
+            <div class="col">
+                <div class="stat-card">
+                    <span class="stat-card__icone" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+                    </span>
+                    <span class="stat-card__texto">
+                        <span class="stat-card__rotulo">Resumos submetidos</span>
+                        <span class="stat-card__linha">
+                            <span class="stat-card__valor">{{ stat_submetidos }}</span>
+                            <span class="stat-card__qualificador">nesta turma</span>
+                        </span>
+                    </span>
+                </div>
+            </div>
 
-    <br>
+            <div class="col">
+                <div class="stat-card">
+                    <span class="stat-card__icone" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                    </span>
+                    <span class="stat-card__texto">
+                        <span class="stat-card__rotulo">Em análise</span>
+                        <span class="stat-card__linha">
+                            <span class="stat-card__valor">{{ stat_em_analise }}</span>
+                            <span class="stat-card__qualificador">aguardando parecer</span>
+                        </span>
+                    </span>
+                </div>
+            </div>
 
-    <a href="{% url 'dashboard_professor' %}">
-        Voltar ao Dashboard
-    </a>
+            <div class="col">
+                <div class="stat-card">
+                    <span class="stat-card__icone" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    </span>
+                    <span class="stat-card__texto">
+                        <span class="stat-card__rotulo">Aprovados</span>
+                        <span class="stat-card__linha">
+                            <span class="stat-card__valor">{{ stat_aprovados }}</span>
+                            <span class="stat-card__qualificador">projetos avaliados</span>
+                        </span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# (D) Tabela de resumos — reaproveita .painel-coord__cadernos / __tabela #}
+    <section class="painel-coord__cadernos" aria-labelledby="titulo-resumos">
+        <div class="painel-coord__cadernos-topo">
+            <div>
+                <h2 id="titulo-resumos" class="painel-coord__cadernos-titulo">Resumos Submetidos</h2>
+                <p class="painel-coord__cadernos-sub">
+                    {{ stat_submetidos }} projeto{{ stat_submetidos|pluralize }} · semestre {{ turma.semestre.ano }}.{{ turma.semestre.semestre }}
+                </p>
+            </div>
+            <span class="painel-coord__cadernos-ordem">Mais recentes primeiro</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table align-middle mb-0 painel-coord__tabela">
+                <thead>
+                    <tr>
+                        <th scope="col">Nome do Aluno</th>
+                        <th scope="col">Título do Projeto</th>
+                        <th scope="col">Status da Submissão</th>
+                        <th scope="col" class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for projeto in projetos %}
+                        <tr>
+                            <td>
+                                <span class="caderno-nome__titulo">{{ projeto.aluno.get_full_name|default:projeto.aluno.username }}</span>
+                                {% if projeto.aluno.ra %}
+                                    <span class="caderno-nome__sub">RA {{ projeto.aluno.ra }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="painel-turma__projeto">{{ projeto.titulo_projeto }}</span>
+                                <span class="caderno-nome__sub">Enviado em {{ projeto.data_envio|date:"d/m/Y" }}</span>
+                            </td>
+                            <td>
+                                <span class="status-badge
+                                    {% if projeto.status_projeto == 0 %}status-badge--rascunho
+                                    {% elif projeto.status_projeto == 1 %}status-badge--analise
+                                    {% elif projeto.status_projeto == 2 %}status-badge--aprovado
+                                    {% else %}status-badge--rejeitado{% endif %}">
+                                    <span class="status-badge__dot" aria-hidden="true"></span>{{ projeto.get_status_projeto_display }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                {# A tela de análise abre em modo leitura quando a submissão já foi avaliada #}
+                                <a href="{% url 'projeto_analise' projeto.pk %}" class="turma-row__acao">
+                                    {% if projeto.status_projeto == 1 %}Analisar{% else %}Ver resumo{% endif %}
+                                    <span class="turma-row__seta" aria-hidden="true">&rarr;</span>
+                                </a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-secondary py-4">Nenhum resumo submetido nesta turma ainda.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
 {% endblock %}
