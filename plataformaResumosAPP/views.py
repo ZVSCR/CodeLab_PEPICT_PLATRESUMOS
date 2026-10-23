@@ -286,25 +286,27 @@ def painel_turma_view(request, turma_id):
 
     #busca turmas do professor conectado
     turma = get_object_or_404(
-        Turma,
+        Turma.objects.select_related('semestre', 'responsavel'),
         id=turma_id,
         responsavel=request.user
     )
 
-    # Busca projetos da turma encontrada
-    projetos = Projeto.objects.filter(
-        turma=turma,
-        submissoes__isnull=False
-    ).select_related(
-        'aluno'
-    ).distinct().order_by(
-        'aluno__first_name',
-        'aluno__username'
-)
+    # Projetos com pelo menos uma submissão; data_envio = data da última submissão
+    projetos = list(
+        Projeto.objects
+        .filter(turma=turma)
+        .select_related('aluno')
+        .annotate(data_envio=Max('submissoes__data_submissao'))
+        .filter(data_envio__isnull=False)
+        .order_by('-data_envio', '-id')
+    )
 
     return render(request, 'professor/painel_turma.html', {
         'turma': turma,
-        'projetos': projetos
+        'projetos': projetos,
+        'stat_submetidos': len(projetos),
+        'stat_em_analise': sum(1 for p in projetos if p.status_projeto == 1),
+        'stat_aprovados': sum(1 for p in projetos if p.status_projeto == 2),
     })
 
 @login_required
