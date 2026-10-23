@@ -3,68 +3,158 @@
 {% block nome_pagina %}Análise de Resumo{% endblock %}
 
 {% block content %}
-    <h1>{{ projeto.titulo_projeto }}</h1>
+    {# (A) Cabeçalho da página — reaproveita .painel-coord__* #}
+    <div class="painel-turma__cabecalho">
+        <div>
+            <p class="painel-coord__sobretitulo">{{ projeto.turma.disciplina }}</p>
+            <h2 class="painel-coord__titulo">Análise do Resumo</h2>
+            <p class="painel-coord__sub">
+                {% if ja_avaliado %}Leia o projeto submetido e o parecer registrado ao final.{% else %}Leia o projeto submetido e registre seu parecer ao final.{% endif %}
+            </p>
+        </div>
+        <a href="{% url 'painel_turma' projeto.turma.pk %}" class="painel-coord__voltar">Voltar à turma</a>
+    </div>
 
-    <p><strong>Aluno:</strong> {{ projeto.aluno.get_full_name|default:projeto.aluno.username }}</p>
-    <p><strong>Autores:</strong> {{ projeto.nome_autores }}</p>
-    <p><strong>Turma:</strong> {{ projeto.turma.nome_turma }}</p>
-    <p>
-        <strong>Programas:</strong>
-        {% for p in projeto.programa.all %}{{ p.nome }}{% if not forloop.last %}, {% endif %}{% endfor %}
-    </p>
-    <p>
-        <strong>ODS:</strong>
-        {% for o in projeto.ods.all %}{{ o }}{% if not forloop.last %}, {% endif %}{% endfor %}
-    </p>
+    <div class="row g-4 align-items-start">
 
-    <hr>
+        {# (B) Coluna principal: dados e conteúdo do projeto — reaproveita .rs-card #}
+        <div class="col-lg-8">
+            <article class="rs-card mb-0" aria-labelledby="titulo-dados">
+                <h3 id="titulo-dados" class="rs-card__titulo mb-3">Dados do Projeto</h3>
 
-    <h2>Objetivos</h2>
-    <p>{{ projeto.objetivos_trabalho }}</p>
+                <div class="analise__dado">
+                    <span class="turma-info__rotulo">Título</span>
+                    <p class="analise__titulo-projeto">{{ projeto.titulo_projeto }}</p>
+                </div>
 
-    <h2>Metodologia</h2>
-    <p>{{ projeto.metodologia_projeto }}</p>
+                <div class="row g-3 analise__dado">
+                    <div class="col-sm-6">
+                        <span class="turma-info__rotulo">Aluno</span>
+                        <span class="analise__valor">
+                            {{ projeto.aluno.get_full_name|default:projeto.aluno.username }}{% if projeto.aluno.ra %} · RA {{ projeto.aluno.ra }}{% endif %}
+                        </span>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="turma-info__rotulo">Turma</span>
+                        <span class="analise__valor">{{ projeto.turma.disciplina }} · {{ projeto.turma.nome_turma }}</span>
+                    </div>
+                </div>
 
-    <h2>Resultados</h2>
-    <p>{{ projeto.resultados_projeto }}</p>
+                <div class="analise__dado">
+                    <span class="turma-info__rotulo">Autores</span>
+                    <span class="analise__valor">{{ projeto.nome_autores|linebreaksbr }}</span>
+                </div>
 
-    <h2>Justificativa ODS</h2>
-    <p>{{ projeto.justificativa_ods }}</p>
+                <div class="analise__dado">
+                    <span class="turma-info__rotulo">Programas PEPICT</span>
+                    <span class="analise__valor">
+                        {% for p in projeto.programa.all %}{{ p.nome }}{% if not forloop.last %} · {% endif %}{% empty %}—{% endfor %}
+                    </span>
+                </div>
 
-    <h2>Reflexão</h2>
-    <p>{{ projeto.reflexao_projeto }}</p>
+                <div class="analise__dado">
+                    <span class="turma-info__rotulo">ODSs vinculados</span>
+                    {% for o in projeto.ods.all %}
+                        <span class="analise__valor">{{ o }}</span>
+                    {% empty %}
+                        <span class="analise__valor">—</span>
+                    {% endfor %}
+                </div>
 
-    {% if projeto.referencia_projeto %}
-        <h2>Referências</h2>
-        <p>{{ projeto.referencia_projeto }}</p>
-    {% endif %}
+                <div class="analise__conteudo">
+                    <h4 class="analise__secao">Objetivos</h4>
+                    <div class="analise__texto">{{ projeto.objetivos_trabalho|default:"—"|linebreaksbr }}</div>
 
-    <hr>
+                    <h4 class="analise__secao">Metodologia</h4>
+                    <div class="analise__texto">{{ projeto.metodologia_projeto|default:"—"|linebreaksbr }}</div>
 
-    <a href="{% url 'pdf_resumo' projeto.id %}">
-        <button type="button">Baixar PDF do Resumo</button>
-    </a>
+                    <h4 class="analise__secao">Resultados</h4>
+                    <div class="analise__texto">{{ projeto.resultados_projeto|default:"—"|linebreaksbr }}</div>
 
-    <hr>
+                    <h4 class="analise__secao">Justificativa ODS</h4>
+                    <div class="analise__texto">{{ projeto.justificativa_ods|default:"—"|linebreaksbr }}</div>
 
-    <h2>Avaliação</h2>
+                    <h4 class="analise__secao">Reflexão</h4>
+                    <div class="analise__texto">{{ projeto.reflexao_projeto|default:"—"|linebreaksbr }}</div>
 
-    {% if ja_avaliado %}
-        <p><strong>Status:</strong> {{ submissao.get_resultado_submissao_display }}</p>
-        <p><strong>Feedback registrado:</strong></p>
-        <p>{{ submissao.feedback|default:"Nenhum feedback informado." }}</p>
-        <p><em>Esta submissão já foi avaliada e não pode ser alterada.</em></p>
-    {% else %}
-        <form method="post">
-            {% csrf_token %}
-            <label for="feedback"><strong>Feedback:</strong></label><br>
-            <textarea name="feedback" id="feedback" rows="5" cols="60"></textarea>
-            <br><br>
-            <button type="submit" name="decisao" value="1">Aprovar</button>
-            <button type="submit" name="decisao" value="2">Rejeitar</button>
-        </form>
-    {% endif %}
+                    {% if projeto.referencia_projeto %}
+                        <h4 class="analise__secao">Referências</h4>
+                        <div class="analise__texto">{{ projeto.referencia_projeto|linebreaks }}</div>
+                    {% endif %}
+                </div>
+            </article>
+        </div>
 
-    <br>
-    <a href="{% url 'painel_turma' projeto.turma.pk %}">Voltar ao painel</a>
+        {# (C) Coluna lateral: dados da submissão — reaproveita .rs-acoes #}
+        <div class="col-lg-4">
+            <aside class="rs-card rs-acoes rs-lateral" aria-labelledby="titulo-submissao">
+                <h3 id="titulo-submissao" class="analise__lateral-titulo">Submissão</h3>
+
+                <div>
+                    {% if projeto.status_projeto == 0 %}
+                        <span class="status-badge status-badge--rascunho"><span class="status-badge__dot" aria-hidden="true"></span>Rascunho</span>
+                    {% elif projeto.status_projeto == 1 %}
+                        <span class="status-badge status-badge--analise"><span class="status-badge__dot" aria-hidden="true"></span>Em análise</span>
+                    {% elif projeto.status_projeto == 2 %}
+                        <span class="status-badge status-badge--aprovado"><span class="status-badge__dot" aria-hidden="true"></span>Aprovado</span>
+                    {% else %}
+                        <span class="status-badge status-badge--rejeitado"><span class="status-badge__dot" aria-hidden="true"></span>Rejeitado</span>
+                    {% endif %}
+                </div>
+
+                <div class="rs-acoes__item">
+                    <span class="rs-acoes__rotulo">Enviado em</span>
+                    <span class="rs-acoes__valor">{{ submissao.data_submissao|date:"d/m/Y \à\s H:i" }}</span>
+                </div>
+
+                <div class="rs-acoes__item">
+                    <span class="rs-acoes__rotulo">Docente responsável</span>
+                    <span class="rs-acoes__valor">{{ projeto.turma.responsavel.get_full_name|default:projeto.turma.responsavel.username }}</span>
+                </div>
+
+                <div class="d-grid analise__pdf">
+                    <a href="{% url 'pdf_resumo' projeto.id %}" class="btn btn-light border btn-sm">Baixar PDF do Resumo</a>
+                </div>
+
+                <div class="rs-dica mt-0">
+                    <p class="rs-aviso__titulo">Somente leitura</p>
+                    <p class="mb-0">O resumo preserva a versão enviada pelo aluno. Registre sugestões no parecer, sem alterar o documento.</p>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    {# (D) Avaliação do resumo: formulário ou parecer já registrado #}
+    <section class="rs-card mt-4" aria-labelledby="titulo-avaliacao">
+        <h3 id="titulo-avaliacao" class="rs-card__titulo">Avaliação do resumo</h3>
+
+        {% if ja_avaliado %}
+            <p class="rs-card__sub mb-3">Parecer registrado para esta submissão.</p>
+
+            <p class="rs-campo__rotulo">Feedback / Parecer</p>
+            <p class="rs-campo__ajuda">Resultado: <strong>{{ submissao.get_resultado_submissao_display }}</strong></p>
+            <div class="rs-avaliacao__caixa">{{ submissao.feedback|default:"Nenhum feedback informado."|linebreaksbr }}</div>
+
+            <p class="rs-avaliacao__rodape">Esta submissão já foi avaliada e não pode ser alterada.</p>
+        {% else %}
+            <p class="rs-card__sub mb-3">Registre orientações claras para o aluno antes de concluir a análise.</p>
+
+            <form method="post">
+                {% csrf_token %}
+                <label for="feedback" class="rs-campo__rotulo">Feedback / Parecer</label>
+                <p id="ajuda-feedback" class="rs-campo__ajuda">O parecer será apresentado ao aluno junto com o resultado da avaliação.</p>
+                <textarea name="feedback" id="feedback" rows="3" class="form-control analise__feedback"
+                          aria-describedby="ajuda-feedback"
+                          placeholder="Escreva seu parecer sobre os objetivos, a metodologia, os resultados e a relação com os ODSs..."></textarea>
+
+                <div class="analise__rodape">
+                    <span>A submissão permanece em análise até a decisão do docente.</span>
+                    <div class="d-flex gap-2">
+                        <button type="submit" name="decisao" value="2" class="btn btn-outline-danger">Rejeitar</button>
+                        <button type="submit" name="decisao" value="1" class="btn btn-success">Aprovar</button>
+                    </div>
+                </div>
+            </form>
+        {% endif %}
+    </section>
 {% endblock %}
