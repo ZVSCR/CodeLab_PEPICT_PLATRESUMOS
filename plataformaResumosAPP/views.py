@@ -168,7 +168,7 @@ def criar_turma_view(request):
             
             
             turma.responsavel = request.user
-            semestre_atual = Semestre.objects.first() 
+            semestre_atual = Semestre.objects.order_by('-ano', '-semestre').first()
             if not semestre_atual:
                 messages.error(request, "Nenhum semestre cadastrado no sistema.")
                 return render(request, 'professor/criar_turma.html', {'form': form})
