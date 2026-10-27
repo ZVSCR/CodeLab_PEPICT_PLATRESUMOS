@@ -3,6 +3,9 @@
 {% block nome_pagina %}{{ turma.nome_turma }}{% endblock %}
 
 {% block content %}
+    {% url 'dashboard_professor' as url_voltar %}
+    {% include '_voltar.html' with href=url_voltar texto='Voltar ao Dashboard' %}
+
     {# (A) Cabeçalho da página — reaproveita .painel-coord__* #}
     <div class="painel-turma__cabecalho">
         <div>
@@ -10,7 +13,6 @@
             <h2 class="painel-coord__titulo">{{ turma.disciplina }}</h2>
             <p class="painel-coord__sub">Acompanhe as submissões e avalie os projetos da sua turma.</p>
         </div>
-        <a href="{% url 'dashboard_professor' %}" class="painel-coord__voltar">Voltar ao Dashboard</a>
     </div>
 
     {# (B) Dados da turma #}
@@ -31,7 +33,7 @@
 
     {# (C) Cards de estatística — reaproveita o .stat-card do Painel do Aluno #}
     <section class="painel-coord__stats" aria-label="Resumo da turma">
-        <div class="row row-cols-1 row-cols-sm-3 g-3">
+        <div class="row row-cols-1 row-cols-md-3 g-3">
             <div class="col">
                 <div class="stat-card">
                     <span class="stat-card__icone" aria-hidden="true">
@@ -92,7 +94,8 @@
         </div>
 
         <div class="table-responsive">
-            <table class="table align-middle mb-0 painel-coord__tabela">
+            {# tabela-empilhada: no celular cada linha vira um card (ver style.css) #}
+            <table class="table align-middle mb-0 painel-coord__tabela tabela-empilhada">
                 <thead>
                     <tr>
                         <th scope="col">Nome do Aluno</th>
@@ -104,17 +107,17 @@
                 <tbody>
                     {% for projeto in projetos %}
                         <tr>
-                            <td>
+                            <td data-label="Aluno">
                                 <span class="caderno-nome__titulo">{{ projeto.aluno.get_full_name|default:projeto.aluno.username }}</span>
                                 {% if projeto.aluno.ra %}
                                     <span class="caderno-nome__sub">RA {{ projeto.aluno.ra }}</span>
                                 {% endif %}
                             </td>
-                            <td>
+                            <td data-label="Projeto">
                                 <span class="painel-turma__projeto">{{ projeto.titulo_projeto }}</span>
                                 <span class="caderno-nome__sub">Enviado em {{ projeto.data_envio|date:"d/m/Y" }}</span>
                             </td>
-                            <td>
+                            <td data-label="Status">
                                 <span class="status-badge
                                     {% if projeto.status_projeto == 0 %}status-badge--rascunho
                                     {% elif projeto.status_projeto == 1 %}status-badge--analise
@@ -123,7 +126,7 @@
                                     <span class="status-badge__dot" aria-hidden="true"></span>{{ projeto.get_status_projeto_display }}
                                 </span>
                             </td>
-                            <td class="text-end">
+                            <td class="text-end tabela-empilhada__acoes">
                                 {# A tela de análise abre em modo leitura quando a submissão já foi avaliada #}
                                 <a href="{% url 'projeto_analise' projeto.pk %}" class="turma-row__acao">
                                     {% if projeto.status_projeto == 1 %}Analisar{% else %}Ver resumo{% endif %}
@@ -133,7 +136,7 @@
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="4" class="text-center text-secondary py-4">Nenhum resumo submetido nesta turma ainda.</td>
+                            <td colspan="4" class="text-center text-secondary py-4 tabela-empilhada__vazia">Nenhum resumo submetido nesta turma ainda.</td>
                         </tr>
                     {% endfor %}
                 </tbody>

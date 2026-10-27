@@ -3,6 +3,9 @@
 {% block nome_pagina %}Gerenciar Tipos de Usuários{% endblock %}
 
 {% block content %}
+    {% url 'dashboard_coordenador' as url_voltar %}
+    {% include '_voltar.html' with href=url_voltar texto='Voltar ao Dashboard' %}
+
     <form method="GET">
         <label for="id_username">Buscar usuário:</label>
         {{ form.username }}
@@ -50,5 +53,4 @@
         {% endif %}
     {% endif %}
 
-    <p><a href="{% url 'dashboard_coordenador' %}">&larr; Voltar ao Dashboard</a></p>
 {% endblock %}

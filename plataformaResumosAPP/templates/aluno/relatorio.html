@@ -3,10 +3,11 @@
 {% block nome_pagina %}Resumo Estruturado{% endblock %}
 
 {% block content %}
-    {# (A) Cabeçalho da página #}
-    <a href="{% url 'dashboard_aluno' %}" class="painel-coord__voltar">&larr; Voltar ao painel</a>
+    {% url 'dashboard_aluno' as url_voltar %}
+    {% include '_voltar.html' with href=url_voltar texto='Voltar ao painel' %}
 
-    <div class="rs-cabecalho mt-4">
+    {# (A) Cabeçalho da página #}
+    <div class="rs-cabecalho">
         <div>
             <p class="painel-coord__sobretitulo">{{ projeto.turma.disciplina }}</p>
             <h2 class="painel-coord__titulo">Resumo Estruturado</h2>

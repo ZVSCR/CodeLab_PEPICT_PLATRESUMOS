@@ -3,7 +3,9 @@
 {% block nome_pagina %}{{ projeto.titulo_projeto }}{% endblock %}
 
 {% block content %}
-    <p><a href="{% url 'projetos_aprovados' projeto.turma.id %}">&larr; Voltar para a lista</a></p>
+    {% url 'projetos_aprovados' projeto.turma.id as url_voltar %}
+    {% include '_voltar.html' with href=url_voltar texto='Voltar para a lista' %}
+
 
     <p><em>Por: {{ projeto.nome_autores }}</em></p>
 

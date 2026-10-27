@@ -3,6 +3,9 @@
 {% block nome_pagina %}Análise de Resumo{% endblock %}
 
 {% block content %}
+    {% url 'painel_turma' projeto.turma.pk as url_voltar %}
+    {% include '_voltar.html' with href=url_voltar texto='Voltar à turma' %}
+
     {# (A) Cabeçalho da página — reaproveita .painel-coord__* #}
     <div class="painel-turma__cabecalho">
         <div>
@@ -12,7 +15,6 @@
                 {% if ja_avaliado %}Leia o projeto submetido e o parecer registrado ao final.{% else %}Leia o projeto submetido e registre seu parecer ao final.{% endif %}
             </p>
         </div>
-        <a href="{% url 'painel_turma' projeto.turma.pk %}" class="painel-coord__voltar">Voltar à turma</a>
     </div>
 
     <div class="row g-4 align-items-start">
@@ -85,8 +87,12 @@
             </article>
         </div>
 
-        {# (C) Coluna lateral: dados da submissão — reaproveita .rs-acoes #}
-        <div class="col-lg-4">
+        {% comment %}
+            (C) Coluna lateral: dados da submissão — reaproveita .rs-acoes.
+            No celular ela sobe para antes do texto (order-first), para o
+            status e o PDF ficarem à mão sem rolar o resumo inteiro.
+        {% endcomment %}
+        <div class="col-lg-4 order-first order-lg-last">
             <aside class="rs-card rs-acoes rs-lateral" aria-labelledby="titulo-submissao">
                 <h3 id="titulo-submissao" class="analise__lateral-titulo">Submissão</h3>
 
@@ -149,7 +155,7 @@
 
                 <div class="analise__rodape">
                     <span>A submissão permanece em análise até a decisão do docente.</span>
-                    <div class="d-flex gap-2">
+                    <div class="analise__botoes">
                         <button type="submit" name="decisao" value="2" class="btn btn-outline-danger">Rejeitar</button>
                         <button type="submit" name="decisao" value="1" class="btn btn-success">Aprovar</button>
                     </div>

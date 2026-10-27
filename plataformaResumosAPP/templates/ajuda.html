@@ -1,0 +1,65 @@
+{% extends 'base_app.html' %}
+
+{% block nome_pagina %}Central de ajuda{% endblock %}
+
+{% block content %}
+    {% url url_painel as url_voltar %}
+    {% include '_voltar.html' with href=url_voltar texto='Voltar ao painel' %}
+
+    {# (A) Cabeçalho da página — reaproveita .painel-coord__* #}
+    <div class="painel-coord__cabecalho">
+        <p class="painel-coord__sobretitulo">Central de ajuda</p>
+        <h2 class="painel-coord__titulo">Como usar a plataforma</h2>
+        <p class="painel-coord__sub">Dúvidas frequentes sobre o envio, a avaliação e a publicação dos resumos do PEPICT.</p>
+    </div>
+
+    {# (B) Perguntas por perfil — cada <details> abre e fecha sem JavaScript #}
+    <section class="coord-card pagina-info" aria-labelledby="ajuda-aluno">
+        <h3 id="ajuda-aluno" class="pagina-info__titulo">Para alunos</h3>
+
+        <details class="pagina-info__item">
+            <summary>Como entro na minha turma?</summary>
+            <p>No Painel do Aluno, clique em <strong>Inscrever-se em turma</strong> e digite o código de acesso que o professor passou para a turma.</p>
+        </details>
+        <details class="pagina-info__item">
+            <summary>Preciso preencher o resumo de uma vez só?</summary>
+            <p>Não. Use <strong>Salvar rascunho</strong> para guardar o que já escreveu e continue depois pelo painel, em <strong>Continuar resumo</strong>.</p>
+        </details>
+        <details class="pagina-info__item">
+            <summary>O que acontece depois que eu envio?</summary>
+            <p>O resumo fica <strong>Em análise</strong> e não pode mais ser editado. O professor da turma aprova ou rejeita e deixa um parecer, que aparece no fim da página do seu resumo.</p>
+        </details>
+    </section>
+
+    <section class="coord-card pagina-info" aria-labelledby="ajuda-professor">
+        <h3 id="ajuda-professor" class="pagina-info__titulo">Para professores</h3>
+
+        <details class="pagina-info__item">
+            <summary>Como crio uma turma?</summary>
+            <p>No Painel do Professor, clique em <strong>Criar uma nova turma</strong>. O código de acesso aparece ao lado do nome da turma; é ele que os alunos usam para entrar.</p>
+        </details>
+        <details class="pagina-info__item">
+            <summary>Como avalio um resumo?</summary>
+            <p>Abra a turma em <strong>Visualizar Resumos</strong> e clique em <strong>Analisar</strong>. Escreva o parecer e escolha <strong>Aprovar</strong> ou <strong>Rejeitar</strong>. A decisão não pode ser alterada depois.</p>
+        </details>
+    </section>
+
+    <section class="coord-card pagina-info" aria-labelledby="ajuda-coordenador">
+        <h3 id="ajuda-coordenador" class="pagina-info__titulo">Para a coordenação</h3>
+
+        <details class="pagina-info__item">
+            <summary>Como monto o Caderno de Resumos?</summary>
+            <p>Em <strong>Ver Turmas e Projetos Aprovados</strong>, abra os aprovados de cada turma e marque os resumos que entram no caderno do semestre. Depois, use <strong>Gerar PDF desta Revista</strong> no card do semestre.</p>
+        </details>
+        <details class="pagina-info__item">
+            <summary>Como transformo um usuário em professor?</summary>
+            <p>Em <strong>Gerenciar Tipos de Usuários</strong>, busque pelo nome de usuário e clique em <strong>Mudar para Professor</strong>.</p>
+        </details>
+    </section>
+
+    {# (C) Contato #}
+    <div class="rs-dica pagina-info__contato">
+        <p class="rs-aviso__titulo">Não encontrou a resposta?</p>
+        <p class="mb-0">Fale com o professor da sua turma ou com a coordenação do PEPICT.</p>
+    </div>
+{% endblock %}

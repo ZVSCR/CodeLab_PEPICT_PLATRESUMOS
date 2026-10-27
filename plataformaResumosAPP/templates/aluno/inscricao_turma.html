@@ -3,6 +3,9 @@
 {% block nome_pagina %}Inscrição em Turma{% endblock %}
 
 {% block content %}
+    {% url 'dashboard_aluno' as url_voltar %}
+    {% include '_voltar.html' with href=url_voltar texto='Voltar ao painel' %}
+
     {# (A) Cabeçalho da página #}
     <div class="inscricao__cabecalho">
         <p class="inscricao__sobretitulo">Turmas</p>
@@ -52,10 +55,6 @@
                     {% endwith %}
 
                     <div class="inscricao-card__acoes">
-                        <a href="{% url 'dashboard_aluno' %}" class="inscricao-card__voltar">
-                            <span aria-hidden="true">&larr;</span>
-                            <span class="inscricao-card__voltar-texto">Voltar ao painel</span>
-                        </a>
                         <button type="submit" class="btn btn-dark">Inscrever-se</button>
                     </div>
                 </form>

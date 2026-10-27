@@ -14,6 +14,21 @@ body {
   background-color: #f5f7fa;   /* fundo da página inteira */
 }
 
+/* BOTÃO "VOLTAR" (templates/_voltar.html) ------------------------------
+   Um só estilo, sempre no topo da página, antes do título.
+   A base é o btn btn-light border do Bootstrap; aqui só a seta e o espaço. */
+.btn-voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+  background-color: #ffffff;
+}
+.btn-voltar:hover {
+  background-color: #e9ecef;
+}
+
 /* HEADER (cabeçalho das telas pós-login) ------------------------------*/
 .app-header {
   background-color: var(--cor-header);
@@ -365,6 +380,23 @@ body {
   color: #6c757d;
 }
 
+/* Grade dos cards: 1 coluna até 767px (card horizontal, largura toda) e
+   3 colunas a partir de 768px (row-cols-md-3 nos templates).
+   Entre 768px e 1199px cada card fica estreito, então o ícone sobe para
+   cima do texto e o número ganha a largura toda do card. */
+@media (min-width: 768px) and (max-width: 1199.98px) {
+  .stat-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+  .stat-card__icone {
+    width: 40px;
+    height: 40px;
+  }
+}
+
 /* (C) Contêiner de inscrições ------------------------------------------*/
 .painel-aluno__inscricoes {
   background-color: #ffffff;
@@ -591,23 +623,9 @@ body {
 .inscricao-card__acoes {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;   /* o "Voltar" fica no topo da página */
   gap: 1rem;
   margin-top: 2rem;
-}
-.inscricao-card__voltar {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  color: #212529;
-  text-decoration: none;
-}
-.inscricao-card__voltar-texto {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-.inscricao-card__voltar:hover {
-  color: #000000;
 }
 
 /* (C) Card de ajuda ---------------------------------------------------*/
@@ -649,7 +667,7 @@ body {
   color: #212529;
 }
 
-/* Celular: menos respiro e botão em largura total acima do "Voltar" */
+/* Celular: menos respiro e botão de enviar em largura total */
 @media (max-width: 575.98px) {
   .inscricao-card {
     padding: 1.5rem 1.25rem;
@@ -658,12 +676,8 @@ body {
     font-size: 1.25rem;
   }
   .inscricao-card__acoes {
-    flex-direction: column-reverse;
+    flex-direction: column;
     align-items: stretch;
-    text-align: center;
-  }
-  .inscricao-card__voltar {
-    justify-content: center;
   }
   .inscricao-ajuda {
     padding: 1.5rem 1.25rem;
@@ -961,13 +975,6 @@ body {
    GESTÃO DE SEMESTRES E TURMAS (coordenador)
    Reaproveita: .painel-coord__*, .caderno-nome, .stat-card__icone
    ====================================================================== */
-.painel-coord__voltar {
-  color: #212529;
-  font-size: 0.95rem;
-  text-decoration: none;
-}
-.painel-coord__voltar:hover { text-decoration: underline; color: #000000; }
-
 /* Card branco genérico do coordenador */
 .coord-card {
   background-color: #ffffff;
@@ -1168,4 +1175,93 @@ body {
   border-top: 1px solid #eceef1;
   font-size: 0.85rem;
   color: #6c757d;
+}
+
+
+/* ======================================================================
+   PÁGINAS DO RODAPÉ (Central de ajuda e Privacidade)
+   Reaproveita: .painel-coord__*, .coord-card, .rs-dica
+   ====================================================================== */
+.pagina-info { padding: 1.5rem 1.25rem; }
+.pagina-info__titulo { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.75rem; }
+.pagina-info__lista { margin-bottom: 0; padding-left: 1.1rem; color: #495057; }
+.pagina-info__lista li + li { margin-top: 0.5rem; }
+
+/* Pergunta que abre/fecha (<details>) */
+.pagina-info__item { border-top: 1px solid #eceef1; }
+.pagina-info__item summary {
+  padding: 0.85rem 0;
+  font-weight: 600;
+  color: #212529;
+  cursor: pointer;
+}
+.pagina-info__item p { color: #495057; margin: 0 0 0.9rem; }
+
+.pagina-info__contato { margin-top: 0; font-size: 0.9rem; }
+
+@media (max-width: 575.98px) {
+  .pagina-info { padding: 1.15rem 1rem; }
+}
+
+
+/* ======================================================================
+   TELAS DO PROFESSOR NO CELULAR
+   ====================================================================== */
+
+/* Botões Rejeitar / Aprovar da Análise do Resumo */
+.analise__botoes { display: flex; gap: 0.5rem; }
+
+/* Tabela que vira cards empilhados no celular (Painel da Turma).
+   Cada <td> leva um data-label, mostrado como rótulo no lugar do <thead>. */
+@media (max-width: 575.98px) {
+  .tabela-empilhada thead { display: none; }
+  .tabela-empilhada,
+  .tabela-empilhada tbody,
+  .tabela-empilhada tr,
+  .tabela-empilhada td { display: block; width: 100%; }
+
+  .tabela-empilhada tr {
+    padding: 1rem;
+    border-top: 1px solid #eceef1;
+  }
+  .painel-coord__tabela.tabela-empilhada td {
+    padding: 0;
+    border: none;
+  }
+  .tabela-empilhada td + td { margin-top: 0.75rem; }
+  .tabela-empilhada td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-bottom: 0.15rem;
+  }
+
+  /* Ação vira um botão de largura total, fácil de tocar */
+  .tabela-empilhada .tabela-empilhada__acoes { text-align: left; }
+  .tabela-empilhada__acoes .turma-row__acao {
+    display: block;
+    padding: 0.6rem 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    text-align: center;
+  }
+  .tabela-empilhada .tabela-empilhada__vazia { padding: 1.5rem 1rem; }
+
+  /* Painel do Professor: "Criar uma nova turma" em largura total */
+  .painel-turma__cabecalho > .btn { width: 100%; }
+
+  /* Linha de turma: badge em cima, "Visualizar Resumos" com área de toque maior */
+  .turma-item .turma-row__acao { padding: 0.5rem 0; }
+
+  /* Análise do Resumo: rodapé empilha e os botões dividem a largura */
+  .analise__rodape {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .analise__botoes .btn {
+    flex: 1;
+    padding-top: 0.65rem;
+    padding-bottom: 0.65rem;
+  }
 }

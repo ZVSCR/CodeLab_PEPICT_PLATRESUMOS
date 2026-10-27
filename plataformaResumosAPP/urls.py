@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import login_view,cadastro_view,dashboard_aluno,dashboard_professor,dashboard_coordenador,logout_view ,criar_turma_view,inscrever_em_turma_view,relatorio_view,submissao_view,painel_turma_view,projeto_analise_view,turmas_coordenador_view,projetos_aprovados_view,projeto_leitura_view,pdf_resumo_view, gera_revista_view,gerencia_tipo_usuario_view
+from .views import login_view,cadastro_view,dashboard_aluno,dashboard_professor,dashboard_coordenador,logout_view ,criar_turma_view,inscrever_em_turma_view,relatorio_view,submissao_view,painel_turma_view,projeto_analise_view,turmas_coordenador_view,projetos_aprovados_view,projeto_leitura_view,pdf_resumo_view, gera_revista_view,gerencia_tipo_usuario_view,ajuda_view,privacidade_view
 
 urlpatterns = [
     path('', login_view, name='login'),
@@ -21,4 +21,6 @@ urlpatterns = [
     path('projeto/<int:projeto_id>/pdf/', pdf_resumo_view, name='pdf_resumo'), 
     path('coordenador/revista/<int:revista_id>/pdf/', gera_revista_view, name='pdf_revista'),
     path('coordenador/gerencia_tipo_usuario',gerencia_tipo_usuario_view,name='gerenciar_tipos_usuarios'),
+    path('ajuda/', ajuda_view, name='ajuda'),
+    path('privacidade/', privacidade_view, name='privacidade'),
 ]
