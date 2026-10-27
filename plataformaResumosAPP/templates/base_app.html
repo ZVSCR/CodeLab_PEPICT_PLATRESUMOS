@@ -60,9 +60,9 @@
 {% block footer %}
 <footer class="app-footer">
   <div class="app-footer__inner">
-    <a href="#" class="app-footer__link">Central de ajuda</a>
+    <a href="{% url 'ajuda' %}" class="app-footer__link">Central de ajuda</a>
     <span class="app-footer__sep">·</span>
-    <a href="#" class="app-footer__link">Privacidade</a>
+    <a href="{% url 'privacidade' %}" class="app-footer__link">Privacidade</a>
   </div>
 </footer>
 {% endblock %}

@@ -661,3 +661,27 @@ def gerencia_tipo_usuario_view(request):
         'form': form,
         'usuarios': usuarios
     })
+
+
+# Páginas do rodapé (Central de ajuda e Privacidade) --------------------------
+
+# Nome da URL do painel de cada perfil (tipo_usuario), usado no "Voltar"
+PAINEL_POR_TIPO = {
+    1: 'dashboard_aluno',
+    2: 'dashboard_professor',
+    3: 'dashboard_coordenador',
+}
+
+
+@login_required
+def ajuda_view(request):
+    return render(request, 'ajuda.html', {
+        'url_painel': PAINEL_POR_TIPO.get(request.user.tipo_usuario, 'dashboard_aluno'),
+    })
+
+
+@login_required
+def privacidade_view(request):
+    return render(request, 'privacidade.html', {
+        'url_painel': PAINEL_POR_TIPO.get(request.user.tipo_usuario, 'dashboard_aluno'),
+    })

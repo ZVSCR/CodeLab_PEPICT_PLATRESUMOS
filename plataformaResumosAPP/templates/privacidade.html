@@ -1,0 +1,43 @@
+{% extends 'base_app.html' %}
+
+{% block nome_pagina %}Privacidade{% endblock %}
+
+{% block content %}
+    {# (A) Cabeçalho da página — reaproveita .painel-coord__* #}
+    <div class="painel-coord__cabecalho">
+        <a href="{% url url_painel %}" class="painel-coord__voltar">&larr; Voltar ao painel</a>
+        <p class="painel-coord__sobretitulo mt-4">Privacidade</p>
+        <h2 class="painel-coord__titulo">Como usamos seus dados</h2>
+        <p class="painel-coord__sub">Resumo de quais informações a plataforma guarda, quem pode vê-las e para quê.</p>
+    </div>
+
+    <section class="coord-card pagina-info" aria-labelledby="priv-dados">
+        <h3 id="priv-dados" class="pagina-info__titulo">Dados que guardamos</h3>
+        <ul class="pagina-info__lista">
+            <li><strong>Cadastro:</strong> nome, sobrenome, nome de usuário, e-mail e RA (quando informado).</li>
+            <li><strong>Senha:</strong> guardada apenas de forma criptografada; ninguém da equipe consegue lê-la.</li>
+            <li><strong>Resumos:</strong> o conteúdo que você escreve, os autores informados, os programas e ODSs escolhidos.</li>
+            <li><strong>Avaliações:</strong> a data de envio, o resultado e o parecer do professor.</li>
+        </ul>
+    </section>
+
+    <section class="coord-card pagina-info" aria-labelledby="priv-acesso">
+        <h3 id="priv-acesso" class="pagina-info__titulo">Quem vê o quê</h3>
+        <ul class="pagina-info__lista">
+            <li><strong>Professor da turma:</strong> os resumos enviados pelos alunos da turma dele.</li>
+            <li><strong>Coordenação do PEPICT:</strong> as turmas do semestre e os resumos aprovados.</li>
+            <li><strong>Público do Caderno de Resumos:</strong> se o seu resumo for aprovado e selecionado, ele é publicado no PDF do caderno, com o título, os autores e o conteúdo.</li>
+        </ul>
+    </section>
+
+    <section class="coord-card pagina-info" aria-labelledby="priv-uso">
+        <h3 id="priv-uso" class="pagina-info__titulo">Para que usamos</h3>
+        <p class="mb-0">Os dados servem só para o funcionamento da disciplina e do PEPICT na UNIFESP: identificar quem envia e quem avalia, acompanhar o andamento dos resumos e montar o Caderno de Resumos. Não vendemos nem compartilhamos dados com terceiros.</p>
+    </section>
+
+    {# (C) Contato #}
+    <div class="rs-dica pagina-info__contato">
+        <p class="rs-aviso__titulo">Quer corrigir ou remover seus dados?</p>
+        <p class="mb-0">Entre em contato com a coordenação do PEPICT.</p>
+    </div>
+{% endblock %}

@@ -1169,3 +1169,29 @@ body {
   font-size: 0.85rem;
   color: #6c757d;
 }
+
+
+/* ======================================================================
+   PÁGINAS DO RODAPÉ (Central de ajuda e Privacidade)
+   Reaproveita: .painel-coord__*, .coord-card, .rs-dica
+   ====================================================================== */
+.pagina-info { padding: 1.5rem 1.25rem; }
+.pagina-info__titulo { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.75rem; }
+.pagina-info__lista { margin-bottom: 0; padding-left: 1.1rem; color: #495057; }
+.pagina-info__lista li + li { margin-top: 0.5rem; }
+
+/* Pergunta que abre/fecha (<details>) */
+.pagina-info__item { border-top: 1px solid #eceef1; }
+.pagina-info__item summary {
+  padding: 0.85rem 0;
+  font-weight: 600;
+  color: #212529;
+  cursor: pointer;
+}
+.pagina-info__item p { color: #495057; margin: 0 0 0.9rem; }
+
+.pagina-info__contato { margin-top: 0; font-size: 0.9rem; }
+
+@media (max-width: 575.98px) {
+  .pagina-info { padding: 1.15rem 1rem; }
+}
