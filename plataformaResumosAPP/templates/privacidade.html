@@ -3,10 +3,12 @@
 {% block nome_pagina %}Privacidade{% endblock %}
 
 {% block content %}
+    {% url url_painel as url_voltar %}
+    {% include '_voltar.html' with href=url_voltar texto='Voltar ao painel' %}
+
     {# (A) Cabeçalho da página — reaproveita .painel-coord__* #}
     <div class="painel-coord__cabecalho">
-        <a href="{% url url_painel %}" class="painel-coord__voltar">&larr; Voltar ao painel</a>
-        <p class="painel-coord__sobretitulo mt-4">Privacidade</p>
+        <p class="painel-coord__sobretitulo">Privacidade</p>
         <h2 class="painel-coord__titulo">Como usamos seus dados</h2>
         <p class="painel-coord__sub">Resumo de quais informações a plataforma guarda, quem pode vê-las e para quê.</p>
     </div>

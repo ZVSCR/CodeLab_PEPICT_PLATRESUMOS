@@ -3,6 +3,9 @@
 {% block nome_pagina %}{{ turma.nome_turma }}{% endblock %}
 
 {% block content %}
+    {% url 'dashboard_professor' as url_voltar %}
+    {% include '_voltar.html' with href=url_voltar texto='Voltar ao Dashboard' %}
+
     {# (A) Cabeçalho da página — reaproveita .painel-coord__* #}
     <div class="painel-turma__cabecalho">
         <div>
@@ -10,7 +13,6 @@
             <h2 class="painel-coord__titulo">{{ turma.disciplina }}</h2>
             <p class="painel-coord__sub">Acompanhe as submissões e avalie os projetos da sua turma.</p>
         </div>
-        <a href="{% url 'dashboard_professor' %}" class="painel-coord__voltar">Voltar ao Dashboard</a>
     </div>
 
     {# (B) Dados da turma #}

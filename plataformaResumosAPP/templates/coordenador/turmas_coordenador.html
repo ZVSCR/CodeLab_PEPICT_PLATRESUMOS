@@ -3,10 +3,12 @@
 {% block nome_pagina %}Painel do Coordenador{% endblock %}
 
 {% block content %}
+    {% url 'dashboard_coordenador' as url_voltar %}
+    {% include '_voltar.html' with href=url_voltar texto='Voltar ao Dashboard' %}
+
     {# (A) Cabeçalho da página #}
     <div class="painel-coord__cabecalho">
-        <a href="{% url 'dashboard_coordenador' %}" class="painel-coord__voltar">&larr; Voltar ao Dashboard</a>
-        <p class="painel-coord__sobretitulo mt-4">Painel de Turmas Vigentes</p>
+        <p class="painel-coord__sobretitulo">Painel de Turmas Vigentes</p>
         <h2 class="painel-coord__titulo">Gestão de Semestres e Turmas</h2>
         <p class="painel-coord__sub">As turmas estão organizadas por semestre. Consulte os resumos aprovados e gerencie os projetos que compõem o Caderno de Resumos de cada período.</p>
     </div>

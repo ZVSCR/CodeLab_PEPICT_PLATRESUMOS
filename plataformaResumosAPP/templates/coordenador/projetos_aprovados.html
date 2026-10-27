@@ -3,10 +3,12 @@
 {% block nome_pagina %}Painel do Coordenador{% endblock %}
 
 {% block content %}
+    {% url 'turmas_coordenador' as url_voltar %}
+    {% include '_voltar.html' with href=url_voltar texto='Voltar às Turmas' %}
+
     {# (A) Cabeçalho da página #}
     <div class="painel-coord__cabecalho">
-        <a href="{% url 'turmas_coordenador' %}" class="painel-coord__voltar">&larr; Voltar às Turmas</a>
-        <p class="painel-coord__sobretitulo mt-4">Painel de Resumos Aprovados da Turma</p>
+        <p class="painel-coord__sobretitulo">Painel de Resumos Aprovados da Turma</p>
         <h2 class="painel-coord__titulo">Banco de Resumos Aprovados</h2>
         <p class="painel-coord__sub">As submissões desta turma estão homologadas e aptas para compor o Caderno de Resumos. Consulte os trabalhos e confira a seleção para a {{ revista.titulo }}.</p>
     </div>

@@ -3,10 +3,12 @@
 {% block nome_pagina %}Central de ajuda{% endblock %}
 
 {% block content %}
+    {% url url_painel as url_voltar %}
+    {% include '_voltar.html' with href=url_voltar texto='Voltar ao painel' %}
+
     {# (A) Cabeçalho da página — reaproveita .painel-coord__* #}
     <div class="painel-coord__cabecalho">
-        <a href="{% url url_painel %}" class="painel-coord__voltar">&larr; Voltar ao painel</a>
-        <p class="painel-coord__sobretitulo mt-4">Central de ajuda</p>
+        <p class="painel-coord__sobretitulo">Central de ajuda</p>
         <h2 class="painel-coord__titulo">Como usar a plataforma</h2>
         <p class="painel-coord__sub">Dúvidas frequentes sobre o envio, a avaliação e a publicação dos resumos do PEPICT.</p>
     </div>

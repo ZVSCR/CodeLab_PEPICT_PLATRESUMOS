@@ -14,6 +14,21 @@ body {
   background-color: #f5f7fa;   /* fundo da página inteira */
 }
 
+/* BOTÃO "VOLTAR" (templates/_voltar.html) ------------------------------
+   Um só estilo, sempre no topo da página, antes do título.
+   A base é o btn btn-light border do Bootstrap; aqui só a seta e o espaço. */
+.btn-voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+  background-color: #ffffff;
+}
+.btn-voltar:hover {
+  background-color: #e9ecef;
+}
+
 /* HEADER (cabeçalho das telas pós-login) ------------------------------*/
 .app-header {
   background-color: var(--cor-header);
@@ -608,23 +623,9 @@ body {
 .inscricao-card__acoes {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;   /* o "Voltar" fica no topo da página */
   gap: 1rem;
   margin-top: 2rem;
-}
-.inscricao-card__voltar {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  color: #212529;
-  text-decoration: none;
-}
-.inscricao-card__voltar-texto {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-.inscricao-card__voltar:hover {
-  color: #000000;
 }
 
 /* (C) Card de ajuda ---------------------------------------------------*/
@@ -666,7 +667,7 @@ body {
   color: #212529;
 }
 
-/* Celular: menos respiro e botão em largura total acima do "Voltar" */
+/* Celular: menos respiro e botão de enviar em largura total */
 @media (max-width: 575.98px) {
   .inscricao-card {
     padding: 1.5rem 1.25rem;
@@ -675,12 +676,8 @@ body {
     font-size: 1.25rem;
   }
   .inscricao-card__acoes {
-    flex-direction: column-reverse;
+    flex-direction: column;
     align-items: stretch;
-    text-align: center;
-  }
-  .inscricao-card__voltar {
-    justify-content: center;
   }
   .inscricao-ajuda {
     padding: 1.5rem 1.25rem;
@@ -978,13 +975,6 @@ body {
    GESTÃO DE SEMESTRES E TURMAS (coordenador)
    Reaproveita: .painel-coord__*, .caderno-nome, .stat-card__icone
    ====================================================================== */
-.painel-coord__voltar {
-  color: #212529;
-  font-size: 0.95rem;
-  text-decoration: none;
-}
-.painel-coord__voltar:hover { text-decoration: underline; color: #000000; }
-
 /* Card branco genérico do coordenador */
 .coord-card {
   background-color: #ffffff;
