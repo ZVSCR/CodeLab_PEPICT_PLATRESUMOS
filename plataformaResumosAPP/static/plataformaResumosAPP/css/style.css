@@ -1202,3 +1202,66 @@ body {
 @media (max-width: 575.98px) {
   .pagina-info { padding: 1.15rem 1rem; }
 }
+
+
+/* ======================================================================
+   TELAS DO PROFESSOR NO CELULAR
+   ====================================================================== */
+
+/* Botões Rejeitar / Aprovar da Análise do Resumo */
+.analise__botoes { display: flex; gap: 0.5rem; }
+
+/* Tabela que vira cards empilhados no celular (Painel da Turma).
+   Cada <td> leva um data-label, mostrado como rótulo no lugar do <thead>. */
+@media (max-width: 575.98px) {
+  .tabela-empilhada thead { display: none; }
+  .tabela-empilhada,
+  .tabela-empilhada tbody,
+  .tabela-empilhada tr,
+  .tabela-empilhada td { display: block; width: 100%; }
+
+  .tabela-empilhada tr {
+    padding: 1rem;
+    border-top: 1px solid #eceef1;
+  }
+  .painel-coord__tabela.tabela-empilhada td {
+    padding: 0;
+    border: none;
+  }
+  .tabela-empilhada td + td { margin-top: 0.75rem; }
+  .tabela-empilhada td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-bottom: 0.15rem;
+  }
+
+  /* Ação vira um botão de largura total, fácil de tocar */
+  .tabela-empilhada .tabela-empilhada__acoes { text-align: left; }
+  .tabela-empilhada__acoes .turma-row__acao {
+    display: block;
+    padding: 0.6rem 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    text-align: center;
+  }
+  .tabela-empilhada .tabela-empilhada__vazia { padding: 1.5rem 1rem; }
+
+  /* Painel do Professor: "Criar uma nova turma" em largura total */
+  .painel-turma__cabecalho > .btn { width: 100%; }
+
+  /* Linha de turma: badge em cima, "Visualizar Resumos" com área de toque maior */
+  .turma-item .turma-row__acao { padding: 0.5rem 0; }
+
+  /* Análise do Resumo: rodapé empilha e os botões dividem a largura */
+  .analise__rodape {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .analise__botoes .btn {
+    flex: 1;
+    padding-top: 0.65rem;
+    padding-bottom: 0.65rem;
+  }
+}
