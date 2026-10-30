@@ -36,6 +36,23 @@ def remove_se_existe(*caminhos):
             os.remove(caminho)
 
 
+class CriarTurmaSemestreTest(TestCase):
+    """Issue #20: a turma nova vai para o semestre mais recente, não para o de menor id."""
+
+    def test_usa_semestre_mais_recente(self):
+        coordenador = Usuario.objects.create_user('coord', password='x', tipo_usuario=3)
+        professor = Usuario.objects.create_user('prof', password='x', tipo_usuario=2)
+        # O antigo é cadastrado primeiro, então fica com o menor id
+        Semestre.objects.create(ano=2026, semestre=1, coordenador=coordenador)
+        atual = Semestre.objects.create(ano=2026, semestre=2, coordenador=coordenador)
+
+        self.client.force_login(professor)
+        self.client.post(reverse('criar_turma'), {
+            'nome_turma': 'T1', 'disciplina': 'Disciplina', 'curso': 'Curso',
+        })
+        self.assertEqual(Turma.objects.get().semestre, atual)
+
+
 class PdfResumoCoordenadorTest(TestCase):
     """Issue #15: o coordenador baixa o PDF de qualquer resumo aprovado."""
 
