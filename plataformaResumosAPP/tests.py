@@ -10,7 +10,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from . import topdf
-from .models import Usuario, Semestre, Turma, Projeto, Revista, ProjetoRevista
+from .models import Usuario, Semestre, Turma, Projeto, Revista, ProjetoRevista, Inscricao, Submissao, ODS
 from .views import gera_capitulos
 
 CONTEUDO_REVISTA = os.path.join(os.path.dirname(topdf.__file__), 'arquivos_temp', 'conteudo_revista.txt')
@@ -51,6 +51,110 @@ class CriarTurmaSemestreTest(TestCase):
             'nome_turma': 'T1', 'disciplina': 'Disciplina', 'curso': 'Curso',
         })
         self.assertEqual(Turma.objects.get().semestre, atual)
+
+
+class RascunhoEEnvioTest(TestCase):
+    """Issues #17 e #18: rascunho aceita campos vazios; envio salva, valida e só então envia."""
+
+    def setUp(self):
+        coordenador = Usuario.objects.create_user('coord', password='x', tipo_usuario=3)
+        professor = Usuario.objects.create_user('prof', password='x', tipo_usuario=2)
+        self.aluno = Usuario.objects.create_user('aluno', password='x', tipo_usuario=1)
+        semestre = Semestre.objects.create(ano=2026, semestre=2, coordenador=coordenador)
+        self.turma = Turma.objects.create(
+            responsavel=professor, semestre=semestre, nome_turma='T1',
+            codigo_acesso='ABC123', disciplina='Disciplina', curso='Curso',
+        )
+        inscricao = Inscricao.objects.create(aluno=self.aluno, turma=self.turma)
+        self.url = reverse('relatorio_projeto', args=[inscricao.id])
+        self.client.force_login(self.aluno)
+        self.client.get(self.url)  # cria o projeto, os programas e os ODS
+        self.projeto = Projeto.objects.get(aluno=self.aluno)
+
+    def _completo(self, **mudancas):
+        dados = {
+            'titulo_projeto': 'Titulo', 'nome_autores': 'Aluno', 'objetivos_trabalho': 'o',
+            'metodologia_projeto': 'm', 'resultados_projeto': 'r', 'justificativa_ods': 'j',
+            'reflexao_projeto': 'rf', 'referencia_projeto': '',
+            'programa': [self.projeto.programa.first().pk],
+            'ods': [ODS.objects.get(numero=4).pk],
+        }
+        dados.update(mudancas)
+        return dados
+
+    def _vazio(self, **campos):
+        dados = {campo: '' for campo in (
+            'titulo_projeto', 'nome_autores', 'objetivos_trabalho', 'metodologia_projeto',
+            'resultados_projeto', 'justificativa_ods', 'reflexao_projeto', 'referencia_projeto',
+        )}
+        dados.update(campos)
+        return dados
+
+    # #17 -------------------------------------------------------------------
+    def test_rascunho_salva_com_campos_vazios(self):
+        resposta = self.client.post(self.url, self._vazio(objetivos_trabalho='So objetivos', acao='rascunho'))
+        self.assertRedirects(resposta, self.url)
+        self.projeto.refresh_from_db()
+        self.assertEqual(self.projeto.objetivos_trabalho, 'So objetivos')
+        self.assertEqual(self.projeto.status_projeto, 0)
+
+    def test_navegador_nao_barra_campos_vazios(self):
+        # Os inputs saem com "required"; sem novalidate o navegador bloqueia o rascunho
+        html = self.client.get(self.url).content.decode()
+        self.assertIn('id="form-relatorio" novalidate', html)
+
+    def test_enter_sem_acao_salva_rascunho(self):
+        resposta = self.client.post(self.url, self._vazio(objetivos_trabalho='x'))
+        self.assertRedirects(resposta, self.url)
+        self.assertFalse(Submissao.objects.exists())
+
+    def test_rascunho_recusa_mais_de_3_ods(self):
+        ods = list(ODS.objects.values_list('pk', flat=True)[:4])
+        resposta = self.client.post(self.url, self._vazio(objetivos_trabalho='x', ods=ods, acao='rascunho'))
+        self.assertContains(resposta, 'Você deve selecionar entre 1 e 3 ODS.')
+        self.projeto.refresh_from_db()
+        self.assertNotEqual(self.projeto.objetivos_trabalho, 'x')
+
+    # #18 -------------------------------------------------------------------
+    def test_enviar_completo_salva_e_envia(self):
+        resposta = self.client.post(self.url, self._completo(objetivos_trabalho='Digitado agora', acao='enviar'))
+        self.assertRedirects(resposta, reverse('dashboard_aluno'))
+        self.projeto.refresh_from_db()
+        self.assertEqual(self.projeto.objetivos_trabalho, 'Digitado agora')  # nada digitado se perde
+        self.assertEqual(self.projeto.status_projeto, 1)
+        self.assertEqual(Submissao.objects.filter(projeto=self.projeto).count(), 1)
+
+    def test_enviar_incompleto_salva_rascunho_e_mostra_erros(self):
+        resposta = self.client.post(self.url, self._completo(metodologia_projeto='', objetivos_trabalho='Novo', acao='enviar'))
+        self.assertEqual(resposta.status_code, 200)
+        self.assertContains(resposta, 'Preencha este campo para enviar.')
+        self.projeto.refresh_from_db()
+        self.assertEqual(self.projeto.objetivos_trabalho, 'Novo')  # rascunho salvo
+        self.assertEqual(self.projeto.status_projeto, 0)
+        self.assertFalse(Submissao.objects.exists())
+
+    def test_enviar_sem_ods_mostra_erro(self):
+        resposta = self.client.post(self.url, self._completo(ods=[], acao='enviar'))
+        self.assertContains(resposta, 'Você deve selecionar entre 1 e 3 ODS.')
+        self.assertFalse(Submissao.objects.exists())
+
+    def test_rota_de_submissao_recusa_resumo_incompleto(self):
+        self.client.post(self.url, self._vazio(objetivos_trabalho='x', acao='rascunho'))
+        resposta = self.client.post(reverse('submissao_projeto', args=[self.projeto.id]))
+        self.assertRedirects(resposta, self.url)
+        self.projeto.refresh_from_db()
+        self.assertEqual(self.projeto.status_projeto, 0)
+        self.assertFalse(Submissao.objects.exists())
+
+    def test_rota_de_submissao_envia_resumo_completo_salvo(self):
+        self.client.post(self.url, self._completo(acao='rascunho'))
+        resposta = self.client.post(reverse('submissao_projeto', args=[self.projeto.id]))
+        self.assertRedirects(resposta, reverse('dashboard_aluno'), fetch_redirect_response=False)
+        self.projeto.refresh_from_db()
+        self.assertEqual(self.projeto.status_projeto, 1)
+
+    def test_rota_de_submissao_so_aceita_post(self):
+        self.assertEqual(self.client.get(reverse('submissao_projeto', args=[self.projeto.id])).status_code, 405)
 
 
 class PdfResumoCoordenadorTest(TestCase):

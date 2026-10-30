@@ -115,13 +115,41 @@ class ProjetoForm(forms.ModelForm):
             'referencia_projeto': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
         }
 
+    def __init__(self, *args, rascunho=False, **kwargs):
+        """
+        rascunho=True: "Salvar rascunho" aceita campos vazios.
+        rascunho=False: "Enviar para análise" exige todos os campos (menos as
+        referências, opcionais no model) e de 1 a 3 ODS.
+        """
+        super().__init__(*args, **kwargs)
+        self.rascunho = rascunho
+
+        for campo in self.fields.values():
+            if rascunho:
+                campo.required = False
+            else:
+                campo.error_messages['required'] = 'Preencha este campo para enviar.'
+
+        if not rascunho:
+            # Nenhum ODS marcado cai no "required" antes do clean_ods: mesma mensagem
+            self.fields['ods'].error_messages['required'] = "Você deve selecionar entre 1 e 3 ODS."
+
     def clean_ods(self):
         ods_selecionadas = self.cleaned_data.get('ods')
         quantidade = ods_selecionadas.count()
-        
-        if quantidade < 1 or quantidade > 3:
+
+        # Mais de 3 nunca vale; menos de 1 só é aceito no rascunho
+        if quantidade > 3 or (quantidade < 1 and not self.rascunho):
             raise forms.ValidationError("Você deve selecionar entre 1 e 3 ODS.")
         return ods_selecionadas
+
+    @classmethod
+    def dados_salvos(cls, projeto):
+        """Dados já salvos do projeto no formato do POST, para validar o envio sem a tela."""
+        dados = {campo: getattr(projeto, campo) or '' for campo in cls._meta.fields}
+        dados['programa'] = list(projeto.programa.values_list('pk', flat=True))
+        dados['ods'] = list(projeto.ods.values_list('pk', flat=True))
+        return dados
     
 class BuscaUsuarioForm(forms.Form):
     username = forms.CharField(

@@ -8,9 +8,10 @@ from django.contrib.auth import authenticate, login, logout, get_user_model
 from .forms import LoginForm, UsuarioCreationForm, CriacaoTurma, InscricaoEmTurma, ProjetoForm,BuscaUsuarioForm, RevistaForm
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.http import FileResponse, HttpResponseForbidden
 from .models import Turma, Semestre, Inscricao, Projeto, Programa, ODS, Submissao, Revista, ProjetoRevista,Usuario
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models import Count, F, Max, Prefetch, Q
 from django.urls import reverse
 
@@ -246,14 +247,29 @@ def relatorio_view(request, inscricao_id):
             messages.error(request, "Este relatório não pode ser editado pois já foi submetido.")
             return redirect('relatorio_projeto', inscricao_id=inscricao.id)
 
-        form = ProjetoForm(request.POST, instance=projeto)
-        
+        # Os dois botões enviam o mesmo formulário: acao=rascunho ou acao=enviar
+        enviar = request.POST.get('acao') == 'enviar'
+
+        # Primeiro salva o que está na tela, mesmo incompleto (nada digitado se perde)
+        form = ProjetoForm(request.POST, instance=projeto, rascunho=True)
+
         if form.is_valid():
             form.save()
-            messages.success(request, "Dados do relatório salvos com sucesso!")
-            return redirect('relatorio_projeto', inscricao_id=inscricao.id)
+
+            if not enviar:
+                messages.success(request, "Dados do relatório salvos com sucesso!")
+                return redirect('relatorio_projeto', inscricao_id=inscricao.id)
+
+            # Envio: os mesmos dados, agora exigindo todos os campos e de 1 a 3 ODS
+            form = ProjetoForm(request.POST, instance=projeto)
+            if form.is_valid():
+                envia_para_analise(projeto)
+                messages.success(request, "Projeto submetido com sucesso!")
+                return redirect('dashboard_aluno')
+
+            messages.error(request, "Rascunho salvo, mas o resumo ainda não pode ser enviado. Preencha os campos indicados.")
         else:
-            messages.error(request, "Erro ao salvar. Verifique os campos (ODS: mínimo 1, máximo 3).")
+            messages.error(request, "Erro ao salvar. Verifique os campos (ODS: no máximo 3).")
     else:
         form = ProjetoForm(instance=projeto)
 
@@ -274,26 +290,37 @@ def relatorio_view(request, inscricao_id):
     })
 
 
+def envia_para_analise(projeto):
+    """Muda o status para "Em análise" e registra a submissão para o professor."""
+    with transaction.atomic():
+        projeto.status_projeto = 1
+        projeto.save()
+        Submissao.objects.create(projeto=projeto, resultado_submissao=0)
+
+
+# A tela de edição envia pelo relatorio_view (acao=enviar). Esta rota continua
+# para envios diretos, mas só aceita POST e valida o que já está salvo.
 @login_required
+@require_POST
 def submissao_view(request, projeto_id):
     if request.user.tipo_usuario != 1:
         return HttpResponseForbidden()
     
     projeto = get_object_or_404(Projeto, id=projeto_id, aluno=request.user)
-    
-   
-    if projeto.status_projeto in [0, 3]:
-        projeto.status_projeto = 1  
-        projeto.save()
-        
-        Submissao.objects.create(
-            projeto=projeto,
-            resultado_submissao=0
-        )
-        messages.success(request, "Projeto submetido com sucesso!")
-    else:
+
+    if projeto.status_projeto not in [0, 3]:
         messages.error(request, "Este projeto não pode ser submetido no momento.")
-        
+        return redirect('dashboard_aluno')
+
+    if not ProjetoForm(ProjetoForm.dados_salvos(projeto), instance=projeto).is_valid():
+        messages.error(request, "Complete o resumo antes de enviar: preencha todos os campos e de 1 a 3 ODS.")
+        inscricao = Inscricao.objects.filter(aluno=request.user, turma=projeto.turma).first()
+        if inscricao:
+            return redirect('relatorio_projeto', inscricao_id=inscricao.id)
+        return redirect('dashboard_aluno')
+
+    envia_para_analise(projeto)
+    messages.success(request, "Projeto submetido com sucesso!")
     return redirect('dashboard_aluno')
 
 @login_required
