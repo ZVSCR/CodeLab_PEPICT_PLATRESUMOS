@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
-from .models import Turma, Programa, Projeto, ODS
+from .models import Turma, Programa, Projeto, ODS, Revista
 
 Usuario = get_user_model()
 
@@ -132,3 +132,24 @@ class BuscaUsuarioForm(forms.Form):
             'placeholder': 'Digite o username...'
         })
     )
+
+class RevistaForm(forms.ModelForm):
+    class Meta:
+        model = Revista
+        fields = [
+            'titulo', 'introducao',
+            'coordenador_geral', 'coordenador_editorial', 'comissao',
+            'revisao', 'diagramacao', 'organizadores',
+        ]
+        # Campos do expediente: um nome por linha (cada linha vira uma linha no PDF)
+        widgets = {
+            'titulo': forms.TextInput(attrs={'class': 'form-control'}),
+            'introducao': forms.Textarea(attrs={'class': 'form-control', 'rows': 6}),
+
+            'coordenador_geral': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'coordenador_editorial': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'comissao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'revisao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'diagramacao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'organizadores': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }

@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -174,3 +175,149 @@ class CadernoRevistaTest(TestCase):
         self.assertIn(topdf.escapa_latex(TEXTO_ESPECIAL), conteudo)
         self.assertIn(r'{[}x{]} \textquotedbl{}q\textquotedbl{}', conteudo)
         self.assertNotIn(r'\input', conteudo)
+
+
+class CadernoEditavelTest(TestCase):
+    """Coordenador edita introdução e expediente; o PDF usa o que foi salvo."""
+
+    def setUp(self):
+        self.coordenador = Usuario.objects.create_user(
+            'coord', password='x', tipo_usuario=3, first_name='Ana', last_name='Coord',
+        )
+        self.professor = Usuario.objects.create_user('prof', password='x', tipo_usuario=2)
+        semestre = Semestre.objects.create(ano=2026, semestre=2, coordenador=self.coordenador)
+        self.turma = Turma.objects.create(
+            responsavel=self.professor, semestre=semestre, nome_turma='T1',
+            codigo_acesso='ABC123', disciplina='Disciplina', curso='Curso',
+        )
+        self.revista = Revista.objects.create(titulo='Caderno', semestre=semestre)
+        self._projeto('Resumo')
+        self.client.force_login(self.coordenador)
+        preserva_conteudo_revista(self)
+
+    def _projeto(self, titulo, turma=None):
+        aluno = Usuario.objects.create_user(f'aluno-{titulo}', password='x', tipo_usuario=1)
+        projeto = Projeto.objects.create(
+            aluno=aluno, turma=turma or self.turma, titulo_projeto=titulo, nome_autores='Aluno',
+            objetivos_trabalho='o', metodologia_projeto='m', resultados_projeto='r',
+            justificativa_ods='j', reflexao_projeto='rf', status_projeto=2,
+        )
+        ProjetoRevista.objects.create(revista=self.revista, projeto=projeto)
+        return projeto
+
+    def _tex_gerado(self):
+        """Gera o PDF pela view, mas captura o .tex em vez de compilar."""
+        capturado = {}
+
+        def falso_to_pdf(dados):
+            caminho = topdf.to_tex(dados)
+            with open(caminho, encoding='utf-8') as arquivo:
+                capturado['tex'] = arquivo.read()
+            os.remove(caminho)
+            return caminho  # já removido: a view só mostra a mensagem de erro
+
+        with patch('plataformaResumosAPP.views.to_pdf', side_effect=falso_to_pdf):
+            self.client.get(reverse('pdf_revista', args=[self.revista.id]))
+        return capturado['tex']
+
+    def _pdf_real(self):
+        """Gera o PDF da revista com o pdflatex e devolve o texto, página por página."""
+        # A view não apaga o PDF nem o .tex gerados em arquivos_temp: o teste apaga
+        gerados = []
+
+        def to_pdf_registrando(dados):
+            pdf = topdf.to_pdf(dados)
+            gerados.append(pdf)
+            self.addCleanup(remove_se_existe, pdf, pdf.replace('.pdf', '.tex'))
+            return pdf
+
+        with patch('plataformaResumosAPP.views.to_pdf', side_effect=to_pdf_registrando):
+            resposta = self.client.get(reverse('pdf_revista', args=[self.revista.id]))
+        self.assertEqual(resposta.status_code, 200)
+        resposta.close()
+        texto = subprocess.run(['pdftotext', '-layout', gerados[0], '-'], capture_output=True, text=True).stdout
+        return texto.split('\f')
+
+    def test_so_coordenador_acessa(self):
+        for tipo, nome in ((1, 'a2'), (2, 'p2')):
+            self.client.force_login(Usuario.objects.create_user(nome, password='x', tipo_usuario=tipo))
+            self.assertEqual(self.client.get(reverse('caderno', args=[self.revista.id])).status_code, 403)
+
+    def test_salva_campos(self):
+        resposta = self.client.post(reverse('caderno', args=[self.revista.id]), {
+            'titulo': 'Caderno 2026/2', 'introducao': 'Texto',
+            'comissao': 'Fulano\nBeltrana', 'revisao': '',
+        })
+        self.assertRedirects(resposta, reverse('caderno', args=[self.revista.id]))
+        self.revista.refresh_from_db()
+        self.assertEqual(self.revista.titulo, 'Caderno 2026/2')
+        self.assertEqual(self.revista.comissao, 'Fulano\nBeltrana')
+
+    def test_tela_lista_resumos_na_ordem_do_pdf(self):
+        # Duas turmas com a mesma disciplina e o mesmo nome não podem se misturar
+        gemea = Turma.objects.create(
+            responsavel=self.professor, semestre=self.turma.semestre, nome_turma='T1',
+            codigo_acesso='GEMEA1', disciplina='Disciplina', curso='Curso',
+        )
+        self._projeto('A da gemea', turma=gemea)
+        self._projeto('Z da primeira')
+
+        html = self.client.get(reverse('caderno', args=[self.revista.id])).content.decode()
+        self.assertEqual(html.count('Disciplina · T1'), 2)
+        self.assertLess(html.index('Resumo'), html.index('Z da primeira'))
+        self.assertLess(html.index('Z da primeira'), html.index('A da gemea'))
+
+        tex = self._tex_gerado()
+        self.assertEqual(tex.count(r'\chapter{Disciplina}'), 2)
+        self.assertLess(tex.index(r'\section{Z da primeira}'), tex.index(r'\section{A da gemea}'))
+
+    def test_pdf_usa_campos_salvos(self):
+        self.revista.introducao = 'Primeiro paragrafo\nSegundo_paragrafo'
+        self.revista.comissao = 'Fulano\n\nBeltrana'
+        self.revista.organizadores = 'Org 100%'
+        self.revista.save()
+
+        tex = self._tex_gerado()
+        self.assertIn('Primeiro paragrafo\n\nSegundo\\_paragrafo', tex)
+        self.assertIn('Fulano \\\\\nBeltrana', tex)
+        self.assertIn('Org 100\\%', tex)
+        self.assertIn('Ana Coord', tex)  # coordenação geral em branco: usa o coordenador do semestre
+        for placeholder in ('NOME_', 'ORGANIZADORES', '_INTRODUCAO_REVISTA_', '_CONTEUDO_REVISTA_'):
+            self.assertNotIn(placeholder, tex)
+
+    def test_placeholder_digitado_nao_e_substituido_de_novo(self):
+        self.revista.comissao = 'Comissão dos ORGANIZADORES'
+        self.revista.organizadores = 'Fulano'
+        self.revista.save()
+
+        tex = self._tex_gerado()
+        self.assertIn('Comissão dos ORGANIZADORES', tex)
+
+    @skipUnless(shutil.which('pdflatex') and shutil.which('pdftotext'), 'precisa do pdflatex e do pdftotext')
+    def test_pdf_real_com_expediente_e_sumario(self):
+        # "[" e "*" no começo da linha viriam logo depois de um "\\" do template
+        self.revista.comissao = '[Coord.] Fulano\n* Beltrana'
+        self.revista.save()
+
+        paginas = self._pdf_real()
+        texto = '\n'.join(paginas)
+        self.assertIn('[Coord.] Fulano', texto)
+        self.assertIn('* Beltrana', texto)
+        # "Introdução" aparece no sumário e depois no capítulo
+        self.assertEqual(texto.split('Sumário', 1)[1].count('Introdução'), 2)
+
+    @skipUnless(shutil.which('pdflatex') and shutil.which('pdftotext'), 'precisa do pdflatex e do pdftotext')
+    def test_sumario_longo_tem_numeros_de_pagina_certos(self):
+        # Com ~50 resumos o sumário ocupa 2 páginas e empurra o resto do caderno
+        for i in range(2, 51):
+            self._projeto(f'Resumo {i:02d}')
+
+        paginas = self._pdf_real()
+        entrada = re.compile(r'Resumo 50[ .]*(\d+)\s*$', re.MULTILINE)
+        no_sumario = next(int(m.group(1)) for p in paginas if (m := entrada.search(p)))
+        pagina_do_resumo = next(
+            p for p in paginas
+            if re.search(r'^\s*\d+\.\d+\s+Resumo 50\s*$', p, re.MULTILINE) and not entrada.search(p)
+        )
+        numero_impresso = int(pagina_do_resumo.strip().splitlines()[-1].strip())
+        self.assertEqual(no_sumario, numero_impresso)

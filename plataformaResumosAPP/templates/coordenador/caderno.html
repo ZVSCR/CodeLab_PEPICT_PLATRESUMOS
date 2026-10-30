@@ -1,0 +1,135 @@
+{% extends 'base_app.html' %}
+
+{% block nome_pagina %}Caderno de Resumos{% endblock %}
+
+{% block content %}
+    {% url 'dashboard_coordenador' as url_voltar %}
+    {% include '_voltar.html' with href=url_voltar texto='Voltar ao painel' %}
+
+    {# (A) Cabeçalho — mesmo layout do Resumo Estruturado #}
+    <div class="rs-cabecalho">
+        <div>
+            <p class="painel-coord__sobretitulo">Caderno de Resumos · {{ revista.semestre.ano }}.{{ revista.semestre.semestre }}</p>
+            <h2 class="painel-coord__titulo">{{ revista.titulo }}</h2>
+            <p class="painel-coord__sub rs-cabecalho__sub">
+                Edite a introdução e as informações da publicação. O PDF do caderno usa sempre a última versão salva.
+            </p>
+        </div>
+    </div>
+
+    {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors|join:" " }}</div>
+    {% endif %}
+
+    <div class="row g-4 align-items-start">
+
+        {# (B) Coluna principal: conteúdo editável do caderno #}
+        <div class="col-lg-8">
+            <form method="POST" id="form-caderno">
+                {% csrf_token %}
+
+                {# 1. Identificação #}
+                <section class="rs-card" aria-labelledby="titulo-identificacao">
+                    <div class="rs-card__topo">
+                        <span class="rs-card__numero" aria-hidden="true">1</span>
+                        <div>
+                            <h3 id="titulo-identificacao" class="rs-card__titulo">Identificação</h3>
+                            <p class="rs-card__sub">Título que aparece na capa, na folha de rosto e no painel.</p>
+                        </div>
+                    </div>
+
+                    {% include 'aluno/_relatorio_secao.html' with titulo="Título do caderno" campo=form.titulo %}
+                </section>
+
+                {# 2. Introdução #}
+                <section class="rs-card" aria-labelledby="titulo-introducao">
+                    <div class="rs-card__topo">
+                        <span class="rs-card__numero" aria-hidden="true">2</span>
+                        <div>
+                            <h3 id="titulo-introducao" class="rs-card__titulo">Introdução</h3>
+                            <p class="rs-card__sub">Primeiro capítulo do caderno, antes dos resumos.</p>
+                        </div>
+                    </div>
+
+                    {% with ajuda_intro="Cada linha vira um parágrafo. Em branco, o PDF usa: “"|add:revista.introducao_padrao|add:"”" %}
+                        {% include 'aluno/_relatorio_secao.html' with titulo="Texto da introdução" campo=form.introducao ajuda=ajuda_intro %}
+                    {% endwith %}
+                </section>
+
+                {# 3. Informações da publicação (expediente) #}
+                <section class="rs-card" aria-labelledby="titulo-expediente">
+                    <div class="rs-card__topo">
+                        <span class="rs-card__numero" aria-hidden="true">3</span>
+                        <div>
+                            <h3 id="titulo-expediente" class="rs-card__titulo">Informações da publicação</h3>
+                            <p class="rs-card__sub">Um nome por linha. Campos em branco saem vazios no PDF.</p>
+                        </div>
+                    </div>
+
+                    {% with ajuda_coord="Em branco, o PDF usa o coordenador do semestre: "|add:revista.coordenador_geral_padrao|add:"." %}
+                        {% include 'aluno/_relatorio_secao.html' with titulo="Programa PEPICT (coordenação geral)" campo=form.coordenador_geral ajuda=ajuda_coord %}
+                    {% endwith %}
+                    {% include 'aluno/_relatorio_secao.html' with titulo="Coordenação Editorial" campo=form.coordenador_editorial %}
+                    {% include 'aluno/_relatorio_secao.html' with titulo="Comissão Organizadora" campo=form.comissao %}
+                    {% include 'aluno/_relatorio_secao.html' with titulo="Revisão" campo=form.revisao %}
+                    {% include 'aluno/_relatorio_secao.html' with titulo="Diagramação" campo=form.diagramacao %}
+                    {% include 'aluno/_relatorio_secao.html' with titulo="Organizadores" campo=form.organizadores ajuda="Aparecem ao final da página, abaixo do título e do ano." %}
+                </section>
+            </form>
+
+            {# 4. Resumos incluídos (somente leitura; a seleção é feita por turma) #}
+            <section class="rs-card mt-3" aria-labelledby="titulo-resumos">
+                <div class="rs-card__topo">
+                    <span class="rs-card__numero" aria-hidden="true">4</span>
+                    <div>
+                        <h3 id="titulo-resumos" class="rs-card__titulo">Resumos incluídos</h3>
+                        <p class="rs-card__sub">Um capítulo por turma, na ordem abaixo. Para incluir ou retirar resumos, use <a href="{% url 'turmas_coordenador' %}">Ver Turmas e Projetos Aprovados</a>.</p>
+                    </div>
+                </div>
+
+                {% regroup projetos by turma as por_turma %}
+                {% for grupo in por_turma %}
+                    <div class="rs-campo">
+                        <p class="rs-campo__rotulo">{{ grupo.grouper.disciplina }} · {{ grupo.grouper.nome_turma }}</p>
+                        <ul class="mb-0 ps-3">
+                            {% for projeto in grupo.list %}
+                                <li><a href="{% url 'projeto_leitura' projeto.id %}">{{ projeto.titulo_projeto }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% empty %}
+                    <p class="rs-campo__texto mb-0">Nenhum resumo incluído ainda.</p>
+                {% endfor %}
+            </section>
+        </div>
+
+        {# (C) Coluna lateral: ações #}
+        <div class="col-lg-4">
+            <div class="rs-lateral">
+                <aside class="rs-card rs-acoes" aria-label="Ações do caderno">
+                    <div class="rs-acoes__item">
+                        <span class="rs-acoes__rotulo">Semestre</span>
+                        <span class="rs-acoes__valor">{{ revista.semestre.ano }}.{{ revista.semestre.semestre }}</span>
+                    </div>
+                    <div class="rs-acoes__item">
+                        <span class="rs-acoes__rotulo">Resumos incluídos</span>
+                        <span class="rs-acoes__valor">{{ projetos|length }}</span>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        {# form="form-caderno" liga este botão ao formulário da coluna principal #}
+                        <button type="submit" form="form-caderno" class="btn btn-dark btn-sm">Salvar alterações</button>
+                        {% if projetos %}
+                            <a href="{% url 'pdf_revista' revista.id %}" class="btn btn-light border btn-sm">Baixar PDF do Caderno</a>
+                        {% endif %}
+                    </div>
+
+                    <div class="rs-aviso">
+                        <p class="rs-aviso__titulo">Antes de baixar</p>
+                        <p class="mb-0">Salve as alterações: o PDF é gerado a partir do que está salvo{% if not projetos %}, e só fica disponível com pelo menos um resumo incluído{% endif %}.</p>
+                    </div>
+                </aside>
+            </div>
+        </div>
+    </div>
+{% endblock %}

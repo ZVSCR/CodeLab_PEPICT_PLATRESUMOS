@@ -1,10 +1,11 @@
 import os
 import random
 import string
-from .topdf import to_pdf, escapa_latex
+from itertools import groupby
+from .topdf import to_pdf, escapa_latex, escapa_latex_linhas, escapa_latex_paragrafos
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout, get_user_model
-from .forms import LoginForm, UsuarioCreationForm, CriacaoTurma, InscricaoEmTurma, ProjetoForm,BuscaUsuarioForm
+from .forms import LoginForm, UsuarioCreationForm, CriacaoTurma, InscricaoEmTurma, ProjetoForm,BuscaUsuarioForm, RevistaForm
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, HttpResponseForbidden
@@ -525,6 +526,20 @@ def pdf_resumo_view(request, projeto_id):
     return redirect(request.META.get('HTTP_REFERER') or PAINEL_POR_TIPO.get(request.user.tipo_usuario, 'dashboard_aluno'))
 
 
+def projetos_do_caderno(revista):
+    """
+    Resumos aprovados incluídos na revista, na ordem do PDF: um capítulo por
+    turma, resumos por título. Usado pelo PDF e pela tela do caderno.
+    """
+    return (
+        Projeto.objects
+        .filter(revistas__revista=revista, status_projeto=2)
+        .select_related('turma')
+        .prefetch_related('programa')
+        .order_by('turma__disciplina', 'turma__nome_turma', 'turma__id', 'titulo_projeto', 'id')
+    )
+
+
 def gera_capitulos(revista_id): 
 
     temp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'arquivos_temp')
@@ -534,32 +549,11 @@ def gera_capitulos(revista_id):
 
     revista = get_object_or_404(Revista, pk=revista_id)
 
-    # Limpa o arquivo no início (começa do zero)
-    with open(caminho_temp_capitulos, "w", encoding="utf-8") as arquivo:
-        arquivo.write("")
+    partes = []
 
-    # Só turmas com algum resumo incluído pelo interruptor do Banco de Resumos Aprovados
-    turmas = (
-        Turma.objects
-        .filter(projetos__revistas__revista=revista, projetos__status_projeto=2)
-        .distinct()
-        .order_by('disciplina', 'nome_turma')
-    )
+    for turma, projetos in groupby(projetos_do_caderno(revista), key=lambda p: p.turma):
 
-    for turma in turmas:
-
-
-        with open(caminho_temp_capitulos, "a", encoding="utf-8") as arquivo:
-            arquivo.write(fr"\chapter{{{escapa_latex(turma.disciplina)}}}" + "\n\n")
-
-
-        projetos = (
-            Projeto.objects
-            .filter(turma=turma, status_projeto=2, revistas__revista=revista)
-            .prefetch_related('programa')
-            .order_by('titulo_projeto')
-        )
-
+        partes.append(fr"\chapter{{{escapa_latex(turma.disciplina)}}}" + "\n\n")
 
         for projeto in projetos:
 
@@ -578,14 +572,17 @@ def gera_capitulos(revista_id):
                 ('Referências', projeto.referencia_projeto),
             ]
 
-            with open(caminho_temp_capitulos, "a", encoding="utf-8") as arquivo:
-                arquivo.write(fr"\newpage" + "\n")
-                arquivo.write(fr"\section{{{escapa_latex(projeto.titulo_projeto)}}}" + "\n")
+            partes.append(fr"\newpage" + "\n")
+            partes.append(fr"\section{{{escapa_latex(projeto.titulo_projeto)}}}" + "\n")
 
-                for rotulo, texto in secoes:
-                    arquivo.write(fr"\noindent" + "\n")
-                    arquivo.write(fr"\textbf{{{rotulo}}}" + "\n" + escapa_latex(texto) + "\n\n")
-                    arquivo.write(fr"\vspace{{0.7cm}}" + "\n")
+            for rotulo, texto in secoes:
+                partes.append(fr"\noindent" + "\n")
+                partes.append(fr"\textbf{{{rotulo}}}" + "\n" + escapa_latex(texto) + "\n\n")
+                partes.append(fr"\vspace{{0.7cm}}" + "\n")
+
+    # Grava tudo de uma vez (o to_tex lê este arquivo)
+    with open(caminho_temp_capitulos, "w", encoding="utf-8") as arquivo:
+        arquivo.write("".join(partes))
 
 @login_required
 def gera_revista_view(request, revista_id):
@@ -597,17 +594,19 @@ def gera_revista_view(request, revista_id):
     
     revista = get_object_or_404(Revista.objects.select_related('semestre__coordenador'), pk=revista_id)
     data_formatada = revista.data_criacao.strftime('%Y')
-    coordenador = revista.semestre.coordenador
 
+    # Conteúdo salvo na tela "Caderno de Resumos"; em branco usa o padrão
     dados = {
         'document_type': 'revista',
         'titulo_revista': escapa_latex(revista.titulo),
         'data': data_formatada,
-        'coordenador_geral': escapa_latex(coordenador.get_full_name() or coordenador.username),
-        'introducao': escapa_latex(
-            f'Este caderno reúne os resumos estruturados dos projetos desenvolvidos nas '
-            f'disciplinas vinculadas ao Programa PEPICT no semestre {revista.semestre}.'
-        ),
+        'introducao': escapa_latex_paragrafos(revista.introducao or revista.introducao_padrao()),
+        'coordenador_geral': escapa_latex_linhas(revista.coordenador_geral or revista.coordenador_geral_padrao()),
+        'coordenador_editorial': escapa_latex_linhas(revista.coordenador_editorial),
+        'comissao': escapa_latex_linhas(revista.comissao),
+        'revisao': escapa_latex_linhas(revista.revisao),
+        'diagramacao': escapa_latex_linhas(revista.diagramacao),
+        'organizadores': escapa_latex_linhas(revista.organizadores),
     }
 
     try:
@@ -626,6 +625,33 @@ def gera_revista_view(request, revista_id):
 
  
     return redirect(request.META.get('HTTP_REFERER', 'dashboard_coordenador'))
+
+
+@login_required
+def caderno_view(request, revista_id):
+    if request.user.tipo_usuario != 3:
+        return HttpResponseForbidden()
+
+    revista = get_object_or_404(Revista.objects.select_related('semestre__coordenador'), pk=revista_id)
+
+    if request.method == 'POST':
+        form = RevistaForm(request.POST, instance=revista)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Caderno salvo. O PDF já sai com as alterações.')
+            return redirect('caderno', revista_id=revista.id)
+    else:
+        form = RevistaForm(instance=revista)
+
+    # Mesma lista e ordem do PDF; o template agrupa por turma
+    projetos = projetos_do_caderno(revista)
+
+    return render(request, 'coordenador/caderno.html', {
+        'revista': revista,
+        'form': form,
+        'projetos': projetos,
+    })
+
 
 @login_required
 def gerencia_tipo_usuario_view(request):

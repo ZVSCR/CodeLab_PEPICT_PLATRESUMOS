@@ -108,11 +108,7 @@
                             <td class="text-secondary">{{ revista.semestre.ano }}.{{ revista.semestre.semestre }}</td>
                             <td><strong>{{ revista.num_projetos }}</strong> <span class="text-secondary small">projeto{{ revista.num_projetos|pluralize }}</span></td>
                             <td class="text-end">
-                                {% if revista.num_projetos > 0 %}
-                                    <a href="{% url 'pdf_revista' revista.id %}" class="btn btn-dark btn-sm px-3">Ver Caderno</a>
-                                {% else %}
-                                    <span class="text-secondary small">Sem resumos ainda</span>
-                                {% endif %}
+                                <a href="{% url 'caderno' revista.id %}" class="btn btn-dark btn-sm px-3">Ver Caderno</a>
                             </td>
                         </tr>
                     {% empty %}
