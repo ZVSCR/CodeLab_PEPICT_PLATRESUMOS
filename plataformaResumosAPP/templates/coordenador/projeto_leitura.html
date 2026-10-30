@@ -1,50 +1,89 @@
 {% extends 'base_app.html' %}
 
-{% block nome_pagina %}{{ projeto.titulo_projeto }}{% endblock %}
+{% block nome_pagina %}Leitura do Resumo{% endblock %}
 
 {% block content %}
     {% url 'projetos_aprovados' projeto.turma.id as url_voltar %}
-    {% include '_voltar.html' with href=url_voltar texto='Voltar para a lista' %}
+    {% include '_voltar.html' with href=url_voltar texto='Voltar aos resumos da turma' %}
 
+    {# (A) Cabeçalho — mesmo layout da Análise do Resumo do professor #}
+    <div class="painel-turma__cabecalho">
+        <div>
+            <p class="painel-coord__sobretitulo">{{ projeto.turma.disciplina }}</p>
+            <h2 class="painel-coord__titulo">Leitura do Resumo</h2>
+            <p class="painel-coord__sub">Resumo homologado pelo docente. Leia o projeto e decida se ele entra no Caderno de Resumos do semestre.</p>
+        </div>
+    </div>
 
-    <p><em>Por: {{ projeto.nome_autores }}</em></p>
+    <div class="row g-4 align-items-start">
 
-    <ul>
-        <li><strong>Unidade Curricular:</strong> {{ projeto.turma.disciplina }}</li>
-        <li><strong>Curso de Graduação:</strong> {{ projeto.turma.curso }}</li>
-        <li><strong>Semestre Letivo:</strong> {{ projeto.turma.semestre.nome_semestre }}</li>
-    </ul>
+        {# (B) Coluna principal: dados e texto do resumo #}
+        <div class="col-lg-8">
+            {% include '_resumo_dados.html' %}
+        </div>
 
-    <hr>
+        {# (C) Coluna lateral: situação no caderno + ações. No celular sobe para antes do texto #}
+        <div class="col-lg-4 order-first order-lg-last">
+            <aside class="rs-card rs-acoes rs-lateral" aria-labelledby="titulo-caderno">
+                <h3 id="titulo-caderno" class="analise__lateral-titulo">Caderno de Resumos</h3>
 
-    <h3>Objetivos do Trabalho</h3>
-    <p>{{ projeto.objetivos_trabalho|linebreaks }}</p>
+                <div>
+                    {% if na_revista %}
+                        <span class="status-badge status-badge--aprovado"><span class="status-badge__dot" aria-hidden="true"></span>Incluído no caderno</span>
+                    {% else %}
+                        <span class="status-badge status-badge--nao-iniciado"><span class="status-badge__dot" aria-hidden="true"></span>Fora do caderno</span>
+                    {% endif %}
+                </div>
 
-    <h3>Metodologia do Projeto</h3>
-    <p>{{ projeto.metodologia_projeto|linebreaks }}</p>
+                <div class="rs-acoes__item">
+                    <span class="rs-acoes__rotulo">Edição</span>
+                    <span class="rs-acoes__valor">
+                        {% if revista %}{{ revista.titulo }}{% else %}Caderno {{ projeto.turma.semestre.ano }}.{{ projeto.turma.semestre.semestre }} (criado ao incluir o primeiro resumo){% endif %}
+                    </span>
+                </div>
 
-    <h3>Resultados Obtidos</h3>
-    <p>{{ projeto.resultados_projeto|linebreaks }}</p>
+                <div class="rs-acoes__item">
+                    <span class="rs-acoes__rotulo">Semestre</span>
+                    <span class="rs-acoes__valor">{{ projeto.turma.semestre.ano }}.{{ projeto.turma.semestre.semestre }}</span>
+                </div>
 
-    <h3>Justificativa e Alinhamento com as ODS</h3>
-    <p>{{ projeto.justificativa_ods|linebreaks }}</p>
+                <div class="rs-acoes__item">
+                    <span class="rs-acoes__rotulo">Docente responsável</span>
+                    <span class="rs-acoes__valor">{{ projeto.turma.responsavel.get_full_name|default:projeto.turma.responsavel.username }}</span>
+                </div>
 
-    <h3>Reflexão Crítica</h3>
-    <p>{{ projeto.reflexao_projeto|linebreaks }}</p>
+                {% if projeto.data_envio %}
+                    <div class="rs-acoes__item">
+                        <span class="rs-acoes__rotulo">Enviado em</span>
+                        <span class="rs-acoes__valor">{{ projeto.data_envio|date:"d/m/Y" }}</span>
+                    </div>
+                {% endif %}
 
-    <h3>Referências Bibliográficas</h3>
-    <p>{{ projeto.referencia_projeto|linebreaks }}</p>
+                {# Mesmo envio do interruptor do Banco de Resumos Aprovados; "voltar" traz de volta para esta tela #}
+                <form action="{% url 'projetos_aprovados' projeto.turma.id %}" method="post" class="d-grid gap-2">
+                    {% csrf_token %}
+                    <input type="hidden" name="projeto_id" value="{{ projeto.id }}">
+                    <input type="hidden" name="voltar" value="leitura">
+                    {% if na_revista %}
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Retirar do caderno de resumos</button>
+                    {% else %}
+                        <input type="hidden" name="incluir" value="1">
+                        <button type="submit" class="btn btn-dark btn-sm">Adicionar ao caderno de resumos</button>
+                    {% endif %}
+                </form>
 
-    {% if request.user.tipo_usuario == 3 %}
-        <form action="{% url 'projetos_aprovados' projeto.turma.id %}" method="POST">
-            {% csrf_token %}
-            <input type="hidden" name="projeto_id" value="{{ projeto.id }}">
-            <input type="hidden" name="incluir" value="1">
-            <button type="submit">Adicionar ao caderno de resumos</button>
-        </form>
-    {% endif %}
+                <div class="d-grid gap-2 analise__pdf">
+                    <a href="{% url 'pdf_resumo' projeto.id %}" class="btn btn-light border btn-sm">Baixar PDF do Resumo</a>
+                    {% if revista %}
+                        <a href="{% url 'caderno' revista.id %}" class="btn btn-light border btn-sm">Ver Caderno</a>
+                    {% endif %}
+                </div>
 
-    <a href="{% url 'pdf_resumo' projeto.id %}">
-        <button type="button">Baixar PDF do Resumo</button>
-    </a>
+                <div class="rs-dica mt-0">
+                    <p class="rs-aviso__titulo">Somente leitura</p>
+                    <p class="mb-0">O resumo preserva a versão aprovada pelo docente. Incluir ou retirar do caderno não altera o resumo.</p>
+                </div>
+            </aside>
+        </div>
+    </div>
 {% endblock %}
