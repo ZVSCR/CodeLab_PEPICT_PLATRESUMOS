@@ -16,6 +16,12 @@ LATEX_ESPECIAIS = {
     '}': r'\}',
     '~': r'\textasciitilde{}',
     '^': r'\textasciicircum{}',
+    # Depois de um "\\", "[" e "*" seriam lidos como argumento do comando
+    '[': '{[}',
+    ']': '{]}',
+    '*': '{*}',
+    # Aspas retas são atalho do babel [brazil] e sumiriam do texto
+    '"': r'\textquotedbl{}',
 }
 
 

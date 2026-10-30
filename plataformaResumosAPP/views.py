@@ -491,18 +491,19 @@ def pdf_resumo_view(request, projeto_id):
         return HttpResponseForbidden()
 
 
+    # Texto do aluno vai escapado para não quebrar (nem injetar comandos no) LaTeX
     dados = {
         'document_type': 'resumo',
-        'titulo_resumo': projeto.titulo_projeto,
-        'autores': projeto.nome_autores,
-        'disciplina': projeto.turma.disciplina,
-        'pepict': ', '.join(p.nome for p in projeto.programa.all()),
-        'objetivos': projeto.objetivos_trabalho,
-        'metodologia': projeto.metodologia_projeto,
-        'resultados': projeto.resultados_projeto,
-        'ods': ', '.join(str(o) for o in projeto.ods.all()),
-        'reflexao': projeto.reflexao_projeto,
-        'referencias': projeto.referencia_projeto or '',
+        'titulo_resumo': escapa_latex(projeto.titulo_projeto),
+        'autores': escapa_latex(projeto.nome_autores),
+        'disciplina': escapa_latex(projeto.turma.disciplina),
+        'pepict': escapa_latex(', '.join(p.nome for p in projeto.programa.all())),
+        'objetivos': escapa_latex(projeto.objetivos_trabalho),
+        'metodologia': escapa_latex(projeto.metodologia_projeto),
+        'resultados': escapa_latex(projeto.resultados_projeto),
+        'ods': escapa_latex(', '.join(str(o) for o in projeto.ods.all())),
+        'reflexao': escapa_latex(projeto.reflexao_projeto),
+        'referencias': escapa_latex(projeto.referencia_projeto),
     }
 
     try:
@@ -519,8 +520,9 @@ def pdf_resumo_view(request, projeto_id):
     except Exception as e:
         messages.error(request, f"Erro ao gerar o PDF: {str(e)}")
 
- 
-    return redirect(request.META.get('HTTP_REFERER', 'dashboard_aluno'))
+
+    # Sem Referer, volta ao painel do próprio perfil (o do aluno daria 403 aos outros)
+    return redirect(request.META.get('HTTP_REFERER') or PAINEL_POR_TIPO.get(request.user.tipo_usuario, 'dashboard_aluno'))
 
 
 def gera_capitulos(revista_id): 
@@ -539,7 +541,7 @@ def gera_capitulos(revista_id):
     # Só turmas com algum resumo incluído pelo interruptor do Banco de Resumos Aprovados
     turmas = (
         Turma.objects
-        .filter(projetos__revistas__revista=revista)
+        .filter(projetos__revistas__revista=revista, projetos__status_projeto=2)
         .distinct()
         .order_by('disciplina', 'nome_turma')
     )
