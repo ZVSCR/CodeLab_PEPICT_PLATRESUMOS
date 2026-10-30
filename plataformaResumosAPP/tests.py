@@ -1,10 +1,13 @@
+import os
 import tempfile
 from unittest.mock import patch
 
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import Usuario, Semestre, Turma, Projeto
+from . import topdf
+from .models import Usuario, Semestre, Turma, Projeto, Revista, ProjetoRevista
+from .views import gera_capitulos
 
 
 class PdfResumoCoordenadorTest(TestCase):
@@ -45,3 +48,54 @@ class PdfResumoCoordenadorTest(TestCase):
             self.projeto.status_projeto = status
             self.projeto.save()
             self.assertEqual(self._baixar_pdf().status_code, 404)
+
+
+class CadernoRevistaTest(TestCase):
+    """Issue #16: o caderno só traz os resumos incluídos, com o texto escapado."""
+
+    def setUp(self):
+        coordenador = Usuario.objects.create_user('coord', password='x', tipo_usuario=3)
+        professor = Usuario.objects.create_user('prof', password='x', tipo_usuario=2)
+        semestre = Semestre.objects.create(ano=2026, semestre=2, coordenador=coordenador)
+        self.turma = Turma.objects.create(
+            responsavel=professor, semestre=semestre, nome_turma='T1',
+            codigo_acesso='ABC123', disciplina='Disciplina', curso='Curso',
+        )
+        self.revista = Revista.objects.create(titulo='Caderno', semestre=semestre)
+
+    def _projeto(self, titulo, status=2, na_revista=True, **campos):
+        aluno = Usuario.objects.create_user(titulo, password='x', tipo_usuario=1)
+        dados = dict(
+            nome_autores='Aluno', objetivos_trabalho='o', metodologia_projeto='m',
+            resultados_projeto='r', justificativa_ods='j', reflexao_projeto='rf',
+        )
+        dados.update(campos)
+        projeto = Projeto.objects.create(
+            aluno=aluno, turma=self.turma, titulo_projeto=titulo, status_projeto=status, **dados,
+        )
+        if na_revista:
+            ProjetoRevista.objects.create(revista=self.revista, projeto=projeto)
+        return projeto
+
+    def _conteudo(self):
+        gera_capitulos(self.revista.id)
+        with open(os.path.join(os.path.dirname(topdf.__file__), 'arquivos_temp', 'conteudo_revista.txt'),
+                  encoding='utf-8') as arquivo:
+            return arquivo.read()
+
+    def test_inclui_so_resumos_marcados(self):
+        self._projeto('incluido')
+        self._projeto('fora', na_revista=False)
+        self._projeto('rascunho', status=0, na_revista=False)
+
+        conteudo = self._conteudo()
+        self.assertIn(r'\section{incluido}', conteudo)
+        self.assertNotIn('fora', conteudo)
+        self.assertNotIn('rascunho', conteudo)
+
+    def test_escapa_texto_do_aluno(self):
+        self._projeto('a_b', objetivos_trabalho=r'50% \input{/etc/passwd}')
+
+        conteudo = self._conteudo()
+        self.assertIn(r'\section{a\_b}', conteudo)
+        self.assertIn(r'50\% \textbackslash{}input\{/etc/passwd\}', conteudo)

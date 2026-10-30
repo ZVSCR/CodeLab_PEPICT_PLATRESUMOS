@@ -1,7 +1,7 @@
 import os
 import random
 import string
-from .topdf import to_pdf
+from .topdf import to_pdf, escapa_latex
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from .forms import LoginForm, UsuarioCreationForm, CriacaoTurma, InscricaoEmTurma, ProjetoForm,BuscaUsuarioForm
@@ -536,61 +536,54 @@ def gera_capitulos(revista_id):
     with open(caminho_temp_capitulos, "w", encoding="utf-8") as arquivo:
         arquivo.write("")
 
-    turmas = Turma.objects.filter(semestre=revista.semestre)
+    # Só turmas com algum resumo incluído pelo interruptor do Banco de Resumos Aprovados
+    turmas = (
+        Turma.objects
+        .filter(projetos__revistas__revista=revista)
+        .distinct()
+        .order_by('disciplina', 'nome_turma')
+    )
 
     for turma in turmas:
 
-        
+
         with open(caminho_temp_capitulos, "a", encoding="utf-8") as arquivo:
-            arquivo.write(fr"\chapter{{{turma.disciplina}}}" + "\n\n")
+            arquivo.write(fr"\chapter{{{escapa_latex(turma.disciplina)}}}" + "\n\n")
 
-        
-        projetos = Projeto.objects.filter(turma=turma)
 
-        
+        projetos = (
+            Projeto.objects
+            .filter(turma=turma, status_projeto=2, revistas__revista=revista)
+            .prefetch_related('programa')
+            .order_by('titulo_projeto')
+        )
+
+
         for projeto in projetos:
 
             programas_vinculados = ", ".join([p.nome for p in projeto.programa.all()])
 
+            # Texto do aluno vai escapado para não quebrar (nem injetar comandos no) LaTeX
+            secoes = [
+                ('Autores', projeto.nome_autores),
+                ('Disciplina e Curso', turma.curso),
+                ('Programa PEPICT vinculado', programas_vinculados),
+                ('Objetivos', projeto.objetivos_trabalho),
+                ('Metodologia', projeto.metodologia_projeto),
+                ('Resultados e Produtos', projeto.resultados_projeto),
+                ('Relação com os ODS', projeto.justificativa_ods),
+                ('Reflexão Crítica', projeto.reflexao_projeto),
+                ('Referências', projeto.referencia_projeto),
+            ]
+
             with open(caminho_temp_capitulos, "a", encoding="utf-8") as arquivo:
                 arquivo.write(fr"\newpage" + "\n")
-                arquivo.write(fr"\section{{{projeto.titulo_projeto}}}" + "\n")
+                arquivo.write(fr"\section{{{escapa_latex(projeto.titulo_projeto)}}}" + "\n")
 
-                arquivo.write(fr"\noindent" + "\n")
-                arquivo.write(fr"\textbf{{Autores}}" + "\n" + f"{projeto.nome_autores}" + "\n\n")
-                arquivo.write(fr"\vspace{{0.7cm}}" + "\n")
-
-                arquivo.write(fr"\noindent" + "\n")
-                arquivo.write(fr"\textbf{{Disciplina e Curso}}" + "\n" + f"{turma.curso}" + "\n\n")
-                arquivo.write(fr"\vspace{{0.7cm}}" + "\n")
-
-                arquivo.write(fr"\noindent" + "\n")
-                arquivo.write(fr"\textbf{{Programa PEPICT vinculado}}" + "\n" + f"{programas_vinculados}" + "\n\n")
-                arquivo.write(fr"\vspace{{0.7cm}}" + "\n")
-
-                arquivo.write(fr"\noindent" + "\n")
-                arquivo.write(fr"\textbf{{Objetivos}}" + "\n" + f"{projeto.objetivos_trabalho}" + "\n\n")
-                arquivo.write(fr"\vspace{{0.7cm}}" + "\n")
-            
-                arquivo.write(fr"\noindent" + "\n")
-                arquivo.write(fr"\textbf{{Metodologia}}" + "\n" + f"{projeto.metodologia_projeto}" + "\n\n")
-                arquivo.write(fr"\vspace{{0.7cm}}" + "\n")
-
-                arquivo.write(fr"\noindent" + "\n")
-                arquivo.write(fr"\textbf{{Resultados e Produtos}}" + "\n" + f"{projeto.resultados_projeto}" + "\n\n")
-                arquivo.write(fr"\vspace{{0.7cm}}" + "\n")
-
-                arquivo.write(fr"\noindent" + "\n")
-                arquivo.write(fr"\textbf{{Relação com os ODS}}" + "\n" + f"{projeto.justificativa_ods}" + "\n\n")
-                arquivo.write(fr"\vspace{{0.7cm}}" + "\n")
-
-                arquivo.write(fr"\noindent" + "\n")
-                arquivo.write(fr"\textbf{{Reflexão Crítica}}" + "\n" + f"{projeto.reflexao_projeto}" + "\n\n")
-                arquivo.write(fr"\vspace{{0.7cm}}" + "\n")
-
-                arquivo.write(fr"\noindent" + "\n")
-                arquivo.write(fr"\textbf{{Referências}}" + "\n" + f"{projeto.referencia_projeto}" + "\n\n")
-                arquivo.write(fr"\vspace{{0.7cm}}" + "\n")
+                for rotulo, texto in secoes:
+                    arquivo.write(fr"\noindent" + "\n")
+                    arquivo.write(fr"\textbf{{{rotulo}}}" + "\n" + escapa_latex(texto) + "\n\n")
+                    arquivo.write(fr"\vspace{{0.7cm}}" + "\n")
 
 @login_required
 def gera_revista_view(request, revista_id):
@@ -600,13 +593,19 @@ def gera_revista_view(request, revista_id):
     # Executa a escrita sequencial no arquivo txt
     gera_capitulos(revista_id)
     
-    revista = get_object_or_404(Revista, pk=revista_id)
+    revista = get_object_or_404(Revista.objects.select_related('semestre__coordenador'), pk=revista_id)
     data_formatada = revista.data_criacao.strftime('%Y')
+    coordenador = revista.semestre.coordenador
 
     dados = {
         'document_type': 'revista',
-        'titulo_revista': revista.titulo,
+        'titulo_revista': escapa_latex(revista.titulo),
         'data': data_formatada,
+        'coordenador_geral': escapa_latex(coordenador.get_full_name() or coordenador.username),
+        'introducao': escapa_latex(
+            f'Este caderno reúne os resumos estruturados dos projetos desenvolvidos nas '
+            f'disciplinas vinculadas ao Programa PEPICT no semestre {revista.semestre}.'
+        ),
     }
 
     try:

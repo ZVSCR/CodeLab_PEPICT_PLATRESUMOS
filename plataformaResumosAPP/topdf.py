@@ -5,6 +5,25 @@ import uuid
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
+LATEX_ESPECIAIS = {
+    '\\': r'\textbackslash{}',
+    '&': r'\&',
+    '%': r'\%',
+    '$': r'\$',
+    '#': r'\#',
+    '_': r'\_',
+    '{': r'\{',
+    '}': r'\}',
+    '~': r'\textasciitilde{}',
+    '^': r'\textasciicircum{}',
+}
+
+
+def escapa_latex(texto):
+    """Escapa os caracteres especiais do LaTeX para o texto sair literal no PDF."""
+    return ''.join(LATEX_ESPECIAIS.get(c, c) for c in str(texto or ''))
+
+
 def _open_template(template_path):
     with open(template_path, 'r') as f:
         return f.read()
@@ -57,6 +76,14 @@ def to_tex(dados):
         doc_gerado = _open_template(template_path)
         doc_gerado = doc_gerado.replace('NOME_DA_REVISTA',  dados.get('titulo_revista', 'titulo da revista'))
         doc_gerado = doc_gerado.replace('ANO_PUBLICACAO',  str(dados.get('data', 'DATA'))) # Forçado para string caso venha objeto datetime
+        # Expediente: o que ainda não tem dado no sistema sai em branco (com "_" o pdflatex falha)
+        doc_gerado = doc_gerado.replace('NOME_COORDENADOR_GERAL_PEPICT', dados.get('coordenador_geral', ''))
+        doc_gerado = doc_gerado.replace('NOME_COORDENADOR_EDITORIAL', dados.get('coordenador_editorial', ''))
+        doc_gerado = doc_gerado.replace('NOME_COMISSAO', dados.get('comissao', ''))
+        doc_gerado = doc_gerado.replace('NOME_REVISAO', dados.get('revisao', ''))
+        doc_gerado = doc_gerado.replace('NOME_DIAGRAMACAO', dados.get('diagramacao', ''))
+        doc_gerado = doc_gerado.replace('ORGANIZADORES', dados.get('organizadores', ''))
+        doc_gerado = doc_gerado.replace('_INTRODUCAO_REVISTA_', dados.get('introducao', ''))
         doc_gerado = doc_gerado.replace('_CONTEUDO_REVISTA_', capitulos )
 
         _salva_arquivo(output_path, doc_gerado)
