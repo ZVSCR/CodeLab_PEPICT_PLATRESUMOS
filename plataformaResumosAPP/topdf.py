@@ -1,8 +1,11 @@
 import subprocess
 import os
+import re
 import uuid
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+MAX_PASSADAS = 4  # limite de compilações do pdflatex por documento
 
 
 LATEX_ESPECIAIS = {
@@ -30,9 +33,34 @@ def escapa_latex(texto):
     return ''.join(LATEX_ESPECIAIS.get(c, c) for c in str(texto or ''))
 
 
+def _linhas(texto):
+    return [linha.strip() for linha in str(texto or '').splitlines() if linha.strip()]
+
+
+def escapa_latex_linhas(texto):
+    """Campo com um nome por linha: cada linha sai numa linha do PDF."""
+    return ' \\\\\n'.join(escapa_latex(linha) for linha in _linhas(texto))
+
+
+def escapa_latex_paragrafos(texto):
+    """Texto livre (introdução): cada linha preenchida vira um parágrafo."""
+    return '\n\n'.join(escapa_latex(linha) for linha in _linhas(texto))
+
+
 def _open_template(template_path):
     with open(template_path, 'r') as f:
         return f.read()
+
+
+def _preenche(template, valores):
+    """
+    Troca todos os placeholders numa passada só. Com replace em cadeia, um
+    valor já inserido que contivesse outro placeholder (ex.: "ORGANIZADORES"
+    digitado pelo coordenador) seria substituído de novo.
+    """
+    chaves = sorted(valores, key=len, reverse=True)
+    padrao = re.compile('|'.join(re.escape(chave) for chave in chaves))
+    return padrao.sub(lambda m: valores[m.group(0)], template)
 
 
 def _salva_arquivo(output_path, conteudo):
@@ -56,17 +84,18 @@ def to_tex(dados):
         template_path = os.path.join(BASE_DIR, 'arquivosTEX', 'resumo.tex')
 
         
-        doc_gerado = _open_template(template_path)
-        doc_gerado = doc_gerado.replace('_TITULO_RESUMO_',  dados.get('titulo_resumo', ''))
-        doc_gerado = doc_gerado.replace('_AUTORES_',        dados.get('autores', ''))
-        doc_gerado = doc_gerado.replace('_DISCIPLINA_',     dados.get('disciplina', ''))
-        doc_gerado = doc_gerado.replace('_PROGRAMA_PEPICT_',dados.get('pepict', ''))
-        doc_gerado = doc_gerado.replace('_OBJETIVOS_',      dados.get('objetivos', ''))
-        doc_gerado = doc_gerado.replace('_METODOLOGIA_',    dados.get('metodologia', ''))
-        doc_gerado = doc_gerado.replace('_RESULTADOS_',     dados.get('resultados', ''))
-        doc_gerado = doc_gerado.replace('_ODS_',            dados.get('ods', ''))
-        doc_gerado = doc_gerado.replace('_REFLEXAO_',       dados.get('reflexao', ''))
-        doc_gerado = doc_gerado.replace('_REFERENCIAS_',    dados.get('referencias', ''))
+        doc_gerado = _preenche(_open_template(template_path), {
+            '_TITULO_RESUMO_':   dados.get('titulo_resumo', ''),
+            '_AUTORES_':         dados.get('autores', ''),
+            '_DISCIPLINA_':      dados.get('disciplina', ''),
+            '_PROGRAMA_PEPICT_': dados.get('pepict', ''),
+            '_OBJETIVOS_':       dados.get('objetivos', ''),
+            '_METODOLOGIA_':     dados.get('metodologia', ''),
+            '_RESULTADOS_':      dados.get('resultados', ''),
+            '_ODS_':             dados.get('ods', ''),
+            '_REFLEXAO_':        dados.get('reflexao', ''),
+            '_REFERENCIAS_':     dados.get('referencias', ''),
+        })
 
         _salva_arquivo(output_path, doc_gerado)
 
@@ -79,18 +108,19 @@ def to_tex(dados):
         with open(caminho_temp_capitulos, "r", encoding="utf-8") as arquivo:
             capitulos = arquivo.read()
 
-        doc_gerado = _open_template(template_path)
-        doc_gerado = doc_gerado.replace('NOME_DA_REVISTA',  dados.get('titulo_revista', 'titulo da revista'))
-        doc_gerado = doc_gerado.replace('ANO_PUBLICACAO',  str(dados.get('data', 'DATA'))) # Forçado para string caso venha objeto datetime
-        # Expediente: o que ainda não tem dado no sistema sai em branco (com "_" o pdflatex falha)
-        doc_gerado = doc_gerado.replace('NOME_COORDENADOR_GERAL_PEPICT', dados.get('coordenador_geral', ''))
-        doc_gerado = doc_gerado.replace('NOME_COORDENADOR_EDITORIAL', dados.get('coordenador_editorial', ''))
-        doc_gerado = doc_gerado.replace('NOME_COMISSAO', dados.get('comissao', ''))
-        doc_gerado = doc_gerado.replace('NOME_REVISAO', dados.get('revisao', ''))
-        doc_gerado = doc_gerado.replace('NOME_DIAGRAMACAO', dados.get('diagramacao', ''))
-        doc_gerado = doc_gerado.replace('ORGANIZADORES', dados.get('organizadores', ''))
-        doc_gerado = doc_gerado.replace('_INTRODUCAO_REVISTA_', dados.get('introducao', ''))
-        doc_gerado = doc_gerado.replace('_CONTEUDO_REVISTA_', capitulos )
+        doc_gerado = _preenche(_open_template(template_path), {
+            'NOME_DA_REVISTA': dados.get('titulo_revista', 'titulo da revista'),
+            'ANO_PUBLICACAO':  str(dados.get('data', 'DATA')), # Forçado para string caso venha objeto datetime
+            # Expediente: o que estiver em branco sai vazio (placeholder com "_" faz o pdflatex falhar)
+            'NOME_COORDENADOR_GERAL_PEPICT': dados.get('coordenador_geral', ''),
+            'NOME_COORDENADOR_EDITORIAL':    dados.get('coordenador_editorial', ''),
+            'NOME_COMISSAO':                 dados.get('comissao', ''),
+            'NOME_REVISAO':                  dados.get('revisao', ''),
+            'NOME_DIAGRAMACAO':              dados.get('diagramacao', ''),
+            'ORGANIZADORES':                 dados.get('organizadores', ''),
+            '_INTRODUCAO_REVISTA_':          dados.get('introducao', ''),
+            '_CONTEUDO_REVISTA_':            capitulos,
+        })
 
         _salva_arquivo(output_path, doc_gerado)
         
@@ -108,23 +138,38 @@ def to_pdf(dados):
     output_dir = os.path.dirname(tex_path)
     pdf_path = tex_path.replace('.tex', '.pdf')
 
-    try:
-        result = subprocess.run(
-            ['pdflatex', '-interaction=nonstopmode', '-output-directory', output_dir, tex_path],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError(
-            f"pdflatex falhou:\nstdout: {e.stdout.decode()}\nstderr: {e.stderr.decode()}"
-        )
+    # Sumário: a 1ª passada grava o .toc e as seguintes o imprimem. Se o sumário
+    # ocupar mais de uma página, os números só se acertam numa 3ª passada, então
+    # repete até o .toc parar de mudar. Sem sumário (resumo), uma passada basta.
+    toc_path = tex_path.replace('.tex', '.toc')
+    toc_anterior = None
+
+    for _ in range(MAX_PASSADAS):
+        try:
+            subprocess.run(
+                ['pdflatex', '-interaction=nonstopmode', '-output-directory', output_dir, tex_path],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(
+                f"pdflatex falhou:\nstdout: {e.stdout.decode()}\nstderr: {e.stderr.decode()}"
+            )
+
+        if not os.path.exists(toc_path):
+            break
+        with open(toc_path, 'rb') as f:
+            toc = f.read()
+        if toc == toc_anterior:
+            break
+        toc_anterior = toc
 
     if not os.path.exists(pdf_path):
         raise FileNotFoundError("O arquivo PDF não foi gerado. Verifique o .tex e o log.")
 
     # Remove arquivos auxiliares gerados pelo pdflatex
-    for ext in ('.aux', '.log', '.out'):
+    for ext in ('.aux', '.log', '.out', '.toc'):
         aux = tex_path.replace('.tex', ext)
         if os.path.exists(aux):
             os.remove(aux)

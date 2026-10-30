@@ -246,6 +246,29 @@ class Revista(models.Model):
         auto_now_add=True
     )
 
+    # Conteúdo editável pelo coordenador. Todos opcionais (default '') para
+    # as revistas que já existem no banco continuarem válidas.
+    introducao = models.TextField(blank=True, default='')
+
+    # Expediente ("Informações da publicação"): um nome por linha
+    coordenador_geral = models.TextField(blank=True, default='')
+    coordenador_editorial = models.TextField(blank=True, default='')
+    comissao = models.TextField(blank=True, default='')
+    revisao = models.TextField(blank=True, default='')
+    diagramacao = models.TextField(blank=True, default='')
+    organizadores = models.TextField(blank=True, default='')
+
+    # Usados no PDF quando o coordenador deixa o campo em branco
+    def introducao_padrao(self):
+        return (
+            'Este caderno reúne os resumos estruturados dos projetos desenvolvidos nas '
+            f'disciplinas vinculadas ao Programa PEPICT no semestre {self.semestre}.'
+        )
+
+    def coordenador_geral_padrao(self):
+        coordenador = self.semestre.coordenador
+        return coordenador.get_full_name() or coordenador.username
+
     def __str__(self):
         return f'{self.titulo} - {self.semestre}'
 
