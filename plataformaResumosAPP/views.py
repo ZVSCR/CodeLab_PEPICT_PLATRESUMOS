@@ -484,6 +484,9 @@ def pdf_resumo_view(request, projeto_id):
         projeto = get_object_or_404(Projeto, id=projeto_id, aluno=request.user)
     elif request.user.tipo_usuario == 2:
         projeto = get_object_or_404(Projeto, id=projeto_id, turma__responsavel=request.user)
+    elif request.user.tipo_usuario == 3:
+        # Coordenador baixa qualquer resumo aprovado (mesma regra da tela de leitura)
+        projeto = get_object_or_404(Projeto, id=projeto_id, status_projeto=2)
     else:
         return HttpResponseForbidden()
 
