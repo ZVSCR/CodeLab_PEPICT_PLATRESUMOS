@@ -44,7 +44,8 @@
 
         {# (B) Coluna principal: os blocos do resumo #}
         <div class="col-lg-8">
-            <form method="POST" id="form-relatorio">
+            {# novalidate: o navegador não barra campos vazios; o servidor valida (rascunho aceita vazio, envio mostra os erros) #}
+            <form method="POST" id="form-relatorio" novalidate>
                 {% csrf_token %}
 
                 {# 1. Identificação #}
@@ -213,12 +214,13 @@
 
                     <div class="d-grid gap-2">
                         {% if editavel %}
-                            {# form="form-relatorio" liga este botão ao formulário da coluna principal #}
-                            <button type="submit" form="form-relatorio" class="btn btn-outline-dark btn-sm">Salvar rascunho</button>
-                            <form action="{% url 'submissao_projeto' projeto.id %}" method="POST" class="d-grid">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-dark btn-sm">Enviar para análise</button>
-                            </form>
+                            {% comment %}
+                                form="form-relatorio" liga os botões ao formulário da coluna principal:
+                                os dois enviam o que está na tela, e "acao" diz o que fazer.
+                                O rascunho vem primeiro, então o Enter num campo salva o rascunho.
+                            {% endcomment %}
+                            <button type="submit" form="form-relatorio" name="acao" value="rascunho" class="btn btn-outline-dark btn-sm">Salvar rascunho</button>
+                            <button type="submit" form="form-relatorio" name="acao" value="enviar" class="btn btn-dark btn-sm">Enviar para análise</button>
                         {% endif %}
                         <a href="{% url 'pdf_resumo' projeto.id %}" class="btn btn-light border btn-sm">Baixar PDF do Resumo</a>
                     </div>
@@ -226,7 +228,7 @@
                     <div class="rs-aviso">
                         {% if editavel %}
                             <p class="rs-aviso__titulo">Edição liberada</p>
-                            <p class="mb-0">Salve antes de enviar: o envio usa a última versão salva. Depois de enviado, o resumo fica bloqueado até a decisão do docente.</p>
+                            <p class="mb-0">O rascunho pode ficar incompleto. Para enviar, preencha todos os campos (as referências são opcionais) e de 1 a 3 ODS. Depois de enviado, o resumo fica bloqueado até a decisão do docente.</p>
                         {% else %}
                             <p class="rs-aviso__titulo">Somente leitura</p>
                             <p class="mb-0">O resumo preserva a versão enviada para análise e não pode ser alterado neste momento.</p>
