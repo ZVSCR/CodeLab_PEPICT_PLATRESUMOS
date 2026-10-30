@@ -4,53 +4,101 @@
 
 {% block content %}
     {% url 'dashboard_coordenador' as url_voltar %}
-    {% include '_voltar.html' with href=url_voltar texto='Voltar ao Dashboard' %}
+    {% include '_voltar.html' with href=url_voltar texto='Voltar ao painel' %}
 
-    <form method="GET">
-        <label for="id_username">Buscar usuário:</label>
-        {{ form.username }}
-        <button type="submit">Pesquisar</button>
-    </form>
+    {# (A) Cabeçalho da página #}
+    <div class="painel-coord__cabecalho">
+        <p class="painel-coord__sobretitulo">Painel do Coordenador</p>
+        <h2 class="painel-coord__titulo">Gerenciar Tipos de Usuários</h2>
+        <p class="painel-coord__sub">Busque alunos e professores pelo nome de usuário e altere o tipo de acesso. Coordenadores não aparecem nesta busca.</p>
+    </div>
 
-    {% if usuarios %}
-        <table border="1" style="margin-top: 20px; border-collapse: collapse;">
-            <thead>
-                <tr>
-                    <th>Usuário</th>
-                    <th>Tipo Atual</th>
-                    <th>Ação</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for usuario in usuarios %}
+    {# (B) Busca + tabela — reaproveita .painel-coord__cadernos / __tabela #}
+    <section class="painel-coord__cadernos" aria-labelledby="titulo-usuarios">
+        <div class="painel-coord__cadernos-topo">
+            <div>
+                <h2 id="titulo-usuarios" class="painel-coord__cadernos-titulo">Usuários</h2>
+                <p class="painel-coord__cadernos-sub">
+                    {% if request.GET.username %}
+                        {{ usuarios|length }} resultado{{ usuarios|length|pluralize }} para “{{ request.GET.username }}”
+                    {% else %}
+                        Digite um nome de usuário para começar.
+                    {% endif %}
+                </p>
+            </div>
+
+            <form method="get" class="usuarios-busca" role="search">
+                <label for="id_username" class="visually-hidden">Buscar por nome de usuário</label>
+                <input type="search" name="username" id="id_username"
+                       value="{{ form.username.value|default_if_none:'' }}"
+                       class="form-control inscricao-card__input"
+                       placeholder="Nome de usuário" autocomplete="off">
+                <button type="submit" class="btn btn-dark">Buscar</button>
+            </form>
+        </div>
+
+        <div class="table-responsive">
+            {# tabela-empilhada: no celular cada linha vira um card (ver style.css) #}
+            <table class="table align-middle mb-0 painel-coord__tabela tabela-empilhada">
+                <thead>
                     <tr>
-                        <td>{{ usuario.username }}</td>
-                        <td>
-                            {% if usuario.tipo_usuario == 1 %}
-                                Aluno
-                            {% elif usuario.tipo_usuario == 2 %}
-                                Professor
-                            {% endif %}
-                        </td>
-                        <td>
-                            <form method="POST">
-                                {% csrf_token %}
-                                <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
-                                {% if usuario.tipo_usuario == 1 %}
-                                    <button type="submit">Mudar para Professor</button>
-                                {% else %}
-                                    <button type="submit">Mudar para Aluno</button>
-                                {% endif %}
-                            </form>
-                        </td>
+                        <th scope="col">Usuário</th>
+                        <th scope="col">Contato</th>
+                        <th scope="col">Tipo Atual</th>
+                        <th scope="col">Turmas como docente</th>
+                        <th scope="col" class="text-end">Ação</th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        {% if request.GET.username %}
-            <p>Nenhum usuário encontrado.</p>
-        {% endif %}
-    {% endif %}
-
+                </thead>
+                <tbody>
+                    {% for usuario in usuarios %}
+                        <tr>
+                            <td data-label="Usuário">
+                                <span class="caderno-nome__titulo">{{ usuario.get_full_name|default:usuario.username }}</span>
+                                <span class="caderno-nome__sub">{{ usuario.username }}</span>
+                            </td>
+                            <td data-label="Contato">
+                                <span class="d-block">{{ usuario.email|default:"—" }}</span>
+                                {% if usuario.ra %}<span class="caderno-nome__sub">RA {{ usuario.ra }}</span>{% endif %}
+                            </td>
+                            <td data-label="Tipo atual">
+                                {% if usuario.tipo_usuario == 1 %}
+                                    <span class="status-badge status-badge--aluno"><span class="status-badge__dot" aria-hidden="true"></span>Aluno</span>
+                                {% else %}
+                                    <span class="status-badge status-badge--professor"><span class="status-badge__dot" aria-hidden="true"></span>Professor</span>
+                                {% endif %}
+                            </td>
+                            <td data-label="Turmas como docente">{{ usuario.num_turmas }}</td>
+                            <td class="text-end tabela-empilhada__acoes">
+                                {# Sem action: envia para a URL atual, mantendo a busca #}
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="usuario_id" value="{{ usuario.id }}">
+                                    {% if usuario.tipo_usuario == 1 %}
+                                        <button type="submit" class="btn btn-dark btn-sm">Tornar professor</button>
+                                    {% elif usuario.num_turmas %}
+                                        {# Professor com turmas: confirma antes, porque ele perde o acesso a elas #}
+                                        <button type="submit" class="btn btn-outline-dark btn-sm"
+                                                data-confirmar="{{ usuario.username }} é docente de {{ usuario.num_turmas }} turma{{ usuario.num_turmas|pluralize }}. Como aluno, perde o acesso ao painel do professor e a essas turmas. Continuar?"
+                                                onclick="return confirm(this.dataset.confirmar)">Tornar aluno</button>
+                                    {% else %}
+                                        <button type="submit" class="btn btn-outline-dark btn-sm">Tornar aluno</button>
+                                    {% endif %}
+                                </form>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-secondary py-4 tabela-empilhada__vazia">
+                                {% if request.GET.username %}
+                                    Nenhum aluno ou professor encontrado para “{{ request.GET.username }}”.
+                                {% else %}
+                                    Use a busca acima para encontrar um aluno ou professor.
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
 {% endblock %}

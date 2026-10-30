@@ -321,3 +321,103 @@ class CadernoEditavelTest(TestCase):
         )
         numero_impresso = int(pagina_do_resumo.strip().splitlines()[-1].strip())
         self.assertEqual(no_sumario, numero_impresso)
+
+
+class LeituraResumoCoordenadorTest(TestCase):
+    """Tela de leitura: o botão alterna entre adicionar e retirar do caderno."""
+
+    def setUp(self):
+        coordenador = Usuario.objects.create_user('coord', password='x', tipo_usuario=3)
+        professor = Usuario.objects.create_user('prof', password='x', tipo_usuario=2)
+        aluno = Usuario.objects.create_user('aluno', password='x', tipo_usuario=1)
+        self.semestre = Semestre.objects.create(ano=2026, semestre=2, coordenador=coordenador)
+        self.turma = Turma.objects.create(
+            responsavel=professor, semestre=self.semestre, nome_turma='T1',
+            codigo_acesso='ABC123', disciplina='Disciplina', curso='Curso',
+        )
+        self.projeto = Projeto.objects.create(
+            aluno=aluno, turma=self.turma, titulo_projeto='Resumo', nome_autores='Aluno',
+            objetivos_trabalho='o', metodologia_projeto='m', resultados_projeto='r',
+            justificativa_ods='j', reflexao_projeto='rf', status_projeto=2,
+        )
+        self.url_leitura = reverse('projeto_leitura', args=[self.projeto.id])
+        self.client.force_login(coordenador)
+
+    def _alterna(self, incluir):
+        dados = {'projeto_id': self.projeto.id, 'voltar': 'leitura'}
+        if incluir:
+            dados['incluir'] = '1'
+        return self.client.post(reverse('projetos_aprovados', args=[self.turma.id]), dados)
+
+    def test_botao_alterna_e_volta_para_a_leitura(self):
+        html = self.client.get(self.url_leitura).content.decode()
+        self.assertIn('Adicionar ao caderno de resumos', html)
+        self.assertNotIn('Retirar do caderno de resumos', html)
+
+        self.assertRedirects(self._alterna(incluir=True), self.url_leitura)
+        self.assertTrue(ProjetoRevista.objects.filter(projeto=self.projeto).exists())
+        html = self.client.get(self.url_leitura).content.decode()
+        self.assertIn('Retirar do caderno de resumos', html)
+        self.assertNotIn('Adicionar ao caderno de resumos', html)
+        self.assertIn(reverse('caderno', args=[Revista.objects.get().id]), html)
+
+        self.assertRedirects(self._alterna(incluir=False), self.url_leitura)
+        self.assertFalse(ProjetoRevista.objects.filter(projeto=self.projeto).exists())
+
+    def test_leitura_nao_cria_revista(self):
+        self.client.get(self.url_leitura)
+        self.assertFalse(Revista.objects.exists())
+
+    def test_interruptor_da_lista_continua_voltando_para_a_lista(self):
+        resposta = self.client.post(
+            reverse('projetos_aprovados', args=[self.turma.id]),
+            {'projeto_id': self.projeto.id, 'incluir': '1'},
+        )
+        self.assertRedirects(
+            resposta, reverse('projetos_aprovados', args=[self.turma.id]) + f'#projeto-{self.projeto.id}',
+            fetch_redirect_response=False,
+        )
+
+    def test_mostra_o_semestre(self):
+        html = self.client.get(self.url_leitura).content.decode()
+        self.assertIn('2026.2', html)
+
+
+class GerenciaTipoUsuarioTest(TestCase):
+    """Busca e troca aluno <-> professor; coordenador fica de fora."""
+
+    def setUp(self):
+        self.coordenador = Usuario.objects.create_user('coord-ana', password='x', tipo_usuario=3)
+        self.aluno = Usuario.objects.create_user('ana aluna', password='x', tipo_usuario=1)
+        self.professor = Usuario.objects.create_user('ana prof', password='x', tipo_usuario=2)
+        semestre = Semestre.objects.create(ano=2026, semestre=2, coordenador=self.coordenador)
+        Turma.objects.create(
+            responsavel=self.professor, semestre=semestre, nome_turma='T1',
+            codigo_acesso='ABC123', disciplina='Disciplina', curso='Curso',
+        )
+        self.url = reverse('gerenciar_tipos_usuarios')
+        self.client.force_login(self.coordenador)
+
+    def test_busca_lista_aluno_e_professor_sem_coordenador(self):
+        resposta = self.client.get(self.url, {'username': 'ana'})
+        usuarios = list(resposta.context['usuarios'])
+        self.assertEqual([u.username for u in usuarios], ['ana aluna', 'ana prof'])
+        self.assertEqual(usuarios[1].num_turmas, 1)
+        self.assertContains(resposta, 'Tornar professor')
+        self.assertContains(resposta, 'confirm(this.dataset.confirmar)')  # professor com turma confirma antes
+
+    def test_troca_tipo_e_mantem_a_busca(self):
+        resposta = self.client.post(f'{self.url}?username=ana+aluna', {'usuario_id': self.aluno.id})
+        self.assertRedirects(resposta, f'{self.url}?username=ana+aluna')
+        self.aluno.refresh_from_db()
+        self.assertEqual(self.aluno.tipo_usuario, 2)
+
+    def test_coordenador_nao_pode_ser_alterado(self):
+        resposta = self.client.post(self.url, {'usuario_id': self.coordenador.id})
+        self.assertEqual(resposta.status_code, 404)
+        self.coordenador.refresh_from_db()
+        self.assertEqual(self.coordenador.tipo_usuario, 3)
+
+    def test_so_coordenador_acessa(self):
+        self.client.force_login(self.professor)
+        self.assertEqual(self.client.get(self.url).status_code, 403)

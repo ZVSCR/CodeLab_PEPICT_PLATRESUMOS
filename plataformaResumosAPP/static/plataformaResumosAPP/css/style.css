@@ -502,6 +502,16 @@ body {
   color: #6c757d;
 }
 
+/* Tipo de usuário (Gerenciar Tipos de Usuários) — mesmo formato do status */
+.status-badge--aluno {
+  background-color: #e9ecef;
+  color: #495057;
+}
+.status-badge--professor {
+  background-color: #eaf1fd;
+  color: #1f4e9c;
+}
+
 /* Indicador de foco visível reforçado para controles do painel */
 .turma-row__acao:focus-visible,
 .btn:focus-visible {
@@ -1264,4 +1274,23 @@ body {
     padding-top: 0.65rem;
     padding-bottom: 0.65rem;
   }
+}
+
+
+/* ======================================================================
+   GERENCIAR TIPOS DE USUÁRIOS (coordenador)
+   Reaproveita: .painel-coord__cadernos/__tabela, .tabela-empilhada,
+   .caderno-nome__*, .inscricao-card__input
+   ====================================================================== */
+
+/* Busca no topo do card da tabela, ao lado do título */
+.usuarios-busca {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1 1 320px;
+  max-width: 420px;
+}
+
+@media (max-width: 575.98px) {
+  .usuarios-busca { max-width: none; }
 }

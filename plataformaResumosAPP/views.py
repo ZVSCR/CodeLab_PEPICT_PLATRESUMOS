@@ -13,6 +13,7 @@ from .models import Turma, Semestre, Inscricao, Projeto, Programa, ODS, Submissa
 from django.db import IntegrityError
 from django.db.models import Count, F, Max, Prefetch, Q
 from django.urls import reverse
+from urllib.parse import urlencode
 
 User = get_user_model()
 
@@ -448,6 +449,10 @@ def projetos_aprovados_view(request, turma_id):
             if removidos:
                 messages.info(request, f'"{projeto.titulo_projeto}" foi retirado da {revista.titulo}.')
 
+        # O botão da tela de leitura volta para ela mesma
+        if request.POST.get('voltar') == 'leitura':
+            return redirect('projeto_leitura', projeto_id=projeto.id)
+
         # volta para o mesmo card em vez do topo da página
         return redirect(reverse('projetos_aprovados', args=[turma.id]) + f'#projeto-{projeto.id}')
 
@@ -471,10 +476,22 @@ def projeto_leitura_view(request, projeto_id):
     if request.user.tipo_usuario != 3:
         return HttpResponseForbidden()
  
-    projeto = get_object_or_404(Projeto, id=projeto_id, status_projeto=2)
- 
+    # data_envio = data da última submissão (o sistema não guarda a data da aprovação)
+    projeto = get_object_or_404(
+        Projeto.objects
+        .select_related('aluno', 'turma__semestre', 'turma__responsavel')
+        .annotate(data_envio=Max('submissoes__data_submissao')),
+        id=projeto_id, status_projeto=2,
+    )
+
+    # Só consulta: a revista do semestre é criada ao incluir o primeiro resumo
+    revista = Revista.objects.filter(semestre=projeto.turma.semestre).first()
+    na_revista = bool(revista) and ProjetoRevista.objects.filter(revista=revista, projeto=projeto).exists()
+
     return render(request, 'coordenador/projeto_leitura.html', {
         'projeto': projeto,
+        'revista': revista,
+        'na_revista': na_revista,
     })
 
 
@@ -665,14 +682,18 @@ def gerencia_tipo_usuario_view(request):
     if form.is_valid() and form.cleaned_data.get('username'):
         username_busca = form.cleaned_data.get('username')
 
-        usuarios = Usuario.objects.filter(
-            username__icontains=username_busca,
-            tipo_usuario__in=[1, 2]
+        # num_turmas: turmas em que é docente (avisa antes de virar aluno)
+        usuarios = (
+            Usuario.objects
+            .filter(username__icontains=username_busca, tipo_usuario__in=[1, 2])
+            .annotate(num_turmas=Count('turmas_responsavel'))
+            .order_by('username')
         )
 
     if request.method == 'POST':
             usuario_id = request.POST.get('usuario_id')
-            usuario_foco = get_object_or_404(Usuario, id=usuario_id)
+            # Só aluno e professor: um coordenador aqui deixava "menssagem" sem valor (erro 500)
+            usuario_foco = get_object_or_404(Usuario, id=usuario_id, tipo_usuario__in=[1, 2])
 
             if usuario_foco.tipo_usuario == 1:
                 usuario_foco.tipo_usuario = 2 
@@ -685,7 +706,7 @@ def gerencia_tipo_usuario_view(request):
             messages.success(request, menssagem)
             
             
-            return redirect(f"{request.path}?username={request.GET.get('username', '')}")
+            return redirect(f"{request.path}?{urlencode({'username': request.GET.get('username', '')})}")
 
     return render(request, 'coordenador/gerenciar_usuarios.html', {
         'form': form,
