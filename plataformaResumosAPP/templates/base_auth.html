@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% comment %}
+   base_auth.html = molde das telas de ENTRADA (login e cadastro).
+   Tela dividida ao meio:
+     - esquerda: retângulo verde com degradê (some no celular)
+     - direita: botões Entrar/Cadastro no topo + o formulário
+
+   Numa tela de entrada você escreve só isto:
+
+       extends 'base_auth.html'
+       block title -> Login
+       block auth_content -> ...o formulário...
+{% endcomment %}
+
+{% block body %}
+<div class="container-fluid p-0 flex-grow-1 d-flex">
+  <div class="row g-0 flex-grow-1">
+
+    <!-- METADE ESQUERDA: só o degradê. d-none d-md-block = escondido no
+         celular, visível a partir de telas médias -->
+    <div class="col-md-6 d-none d-md-block auth-painel"></div>
+
+    <!-- METADE DIREITA: navegação + formulário -->
+    <div class="col-12 col-md-6 d-flex flex-column auth-lado">
+
+      <!-- Botões do topo. O botão da página atual fica "preenchido".
+           request.resolver_match.url_name é o name= da rota em urls.py -->
+      {% with rota=request.resolver_match.url_name %}
+      <nav class="d-flex justify-content-end gap-2 p-3 p-md-4">
+        <a href="{% url 'login' %}"
+           class="btn auth-aba {% if rota == 'login' %}auth-aba--ativa{% endif %}">Entrar</a>
+        <a href="{% url 'cadastro' %}"
+           class="btn auth-aba {% if rota == 'cadastro' %}auth-aba--ativa{% endif %}">Cadastro</a>
+      </nav>
+      {% endwith %}
+
+      <!-- Formulário centralizado no espaço que sobra -->
+      <main class="flex-grow-1 d-flex align-items-center justify-content-center px-3 pb-5">
+        <div class="auth-form">
+
+          <!-- Mensagens das views (ex.: "Cadastro realizado com sucesso!") -->
+          {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %}">{{ message }}</div>
+          {% endfor %}
+
+          {% block auth_content %}{% endblock %}
+        </div>
+      </main>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

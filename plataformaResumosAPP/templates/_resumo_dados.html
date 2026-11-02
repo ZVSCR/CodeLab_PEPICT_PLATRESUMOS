@@ -1,0 +1,69 @@
+{% comment %}
+   Card "Dados do Projeto": dados e texto completo do resumo, só leitura.
+   Usado na Análise do Resumo (professor) e na Leitura do Resumo (coordenador).
+   Recebe "projeto".
+{% endcomment %}
+<article class="rs-card mb-0" aria-labelledby="titulo-dados">
+    <h3 id="titulo-dados" class="rs-card__titulo mb-3">Dados do Projeto</h3>
+
+    <div class="analise__dado">
+        <span class="turma-info__rotulo">Título</span>
+        <p class="analise__titulo-projeto">{{ projeto.titulo_projeto }}</p>
+    </div>
+
+    <div class="row g-3 analise__dado">
+        <div class="col-sm-6">
+            <span class="turma-info__rotulo">Aluno</span>
+            <span class="analise__valor">
+                {{ projeto.aluno.get_full_name|default:projeto.aluno.username }}{% if projeto.aluno.ra %} · RA {{ projeto.aluno.ra }}{% endif %}
+            </span>
+        </div>
+        <div class="col-sm-6">
+            <span class="turma-info__rotulo">Turma</span>
+            <span class="analise__valor">{{ projeto.turma.disciplina }} · {{ projeto.turma.nome_turma }}</span>
+        </div>
+    </div>
+
+    <div class="analise__dado">
+        <span class="turma-info__rotulo">Autores</span>
+        <span class="analise__valor">{{ projeto.nome_autores|linebreaksbr }}</span>
+    </div>
+
+    <div class="analise__dado">
+        <span class="turma-info__rotulo">Programas PEPICT</span>
+        <span class="analise__valor">
+            {% for p in projeto.programa.all %}{{ p.nome }}{% if not forloop.last %} · {% endif %}{% empty %}—{% endfor %}
+        </span>
+    </div>
+
+    <div class="analise__dado">
+        <span class="turma-info__rotulo">ODSs vinculados</span>
+        {% for o in projeto.ods.all %}
+            <span class="analise__valor">{{ o }}</span>
+        {% empty %}
+            <span class="analise__valor">—</span>
+        {% endfor %}
+    </div>
+
+    <div class="analise__conteudo">
+        <h4 class="analise__secao">Objetivos</h4>
+        <div class="analise__texto">{{ projeto.objetivos_trabalho|default:"—"|linebreaksbr }}</div>
+
+        <h4 class="analise__secao">Metodologia</h4>
+        <div class="analise__texto">{{ projeto.metodologia_projeto|default:"—"|linebreaksbr }}</div>
+
+        <h4 class="analise__secao">Resultados</h4>
+        <div class="analise__texto">{{ projeto.resultados_projeto|default:"—"|linebreaksbr }}</div>
+
+        <h4 class="analise__secao">Justificativa ODS</h4>
+        <div class="analise__texto">{{ projeto.justificativa_ods|default:"—"|linebreaksbr }}</div>
+
+        <h4 class="analise__secao">Reflexão</h4>
+        <div class="analise__texto">{{ projeto.reflexao_projeto|default:"—"|linebreaksbr }}</div>
+
+        {% if projeto.referencia_projeto %}
+            <h4 class="analise__secao">Referências</h4>
+            <div class="analise__texto">{{ projeto.referencia_projeto|linebreaks }}</div>
+        {% endif %}
+    </div>
+</article>

@@ -1,11 +1,8 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <title>Inscrição em Turma</title>
-</head>
-<body>
+{% extends 'base_app.html' %}
 
+{% block nome_pagina %}Inscrição em Turma{% endblock %}
+
+{% block content %}
     <h1>Já existe uma inscrição nessa turma</h1>
 
     <a href="{% url 'dashboard_aluno' %}">
@@ -13,6 +10,4 @@
             voltar ao inicio
         </button>
     </a>
-
-</body>
-</html>
+{% endblock %}

@@ -2,15 +2,20 @@ import os
 import random
 import string
 import tempfile
-from .topdf import to_pdf
+from itertools import groupby
+from .topdf import to_pdf, escapa_latex, escapa_latex_linhas, escapa_latex_paragrafos
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout, get_user_model
-from .forms import LoginForm, UsuarioCreationForm, CriacaoTurma, InscricaoEmTurma, ProjetoForm,BuscaUsuarioForm
+from .forms import LoginForm, UsuarioCreationForm, CriacaoTurma, InscricaoEmTurma, ProjetoForm,BuscaUsuarioForm, RevistaForm
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.http import FileResponse, HttpResponseForbidden
 from .models import Turma, Semestre, Inscricao, Projeto, Programa, ODS, Submissao, Revista, ProjetoRevista,Usuario
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
+from django.db.models import Count, F, Max, Prefetch, Q
+from django.urls import reverse
+from urllib.parse import urlencode
 
 User = get_user_model()
 
@@ -98,9 +103,17 @@ def dashboard_aluno(request):
 
     for inscricao in lista_inscricoes:
         inscricao.projeto_vinculado = Projeto.objects.filter(aluno=request.user, turma=inscricao.turma).first()
-    
+
+    # Contadores do painel: turmas do semestre mais recente,
+    # resumos editáveis (Rascunho/Rejeitado) e resumos aguardando avaliação (Em análise)
+    semestre_atual = Semestre.objects.order_by('-ano', '-semestre').first()
+    projetos_aluno = Projeto.objects.filter(aluno=request.user)
+
     return render(request, 'aluno/dashboard_aluno.html', {
-        'lista_inscricoes': lista_inscricoes
+        'lista_inscricoes': lista_inscricoes,
+        'stat_turmas_inscritas': lista_inscricoes.filter(turma__semestre=semestre_atual).count(),
+        'stat_resumos_andamento': projetos_aluno.filter(status_projeto__in=[0, 3]).count(),
+        'stat_resumos_submetidos': projetos_aluno.filter(status_projeto=1).count(),
     })
 
 
@@ -109,10 +122,25 @@ def dashboard_professor(request):
     if request.user.tipo_usuario != 2:
         return HttpResponseForbidden()
     
-    lista_turmas = Turma.objects.filter(responsavel=request.user)
+    semestre_atual = Semestre.objects.order_by('-ano', '-semestre').first()
 
- 
-    return render(request, 'professor/dashboard_professor.html', {'lista_turmas':lista_turmas} )
+    # Semestre mais recente primeiro; cada turma já vem com o nº de resumos aguardando parecer
+    lista_turmas = (
+        Turma.objects
+        .filter(responsavel=request.user)
+        .select_related('semestre')
+        .annotate(num_em_analise=Count('projetos', filter=Q(projetos__status_projeto=1)))
+        .order_by('-semestre__ano', '-semestre__semestre', 'nome_turma')
+    )
+    projetos_professor = Projeto.objects.filter(turma__responsavel=request.user)
+
+    return render(request, 'professor/dashboard_professor.html', {
+        'lista_turmas': lista_turmas,
+        'semestre_atual': semestre_atual,
+        'stat_turmas': lista_turmas.filter(semestre=semestre_atual).count(),
+        'stat_em_analise': projetos_professor.filter(status_projeto=1).count(),
+        'stat_avaliados': projetos_professor.filter(status_projeto__in=[2, 3]).count(),
+    })
 
 
 @login_required
@@ -120,10 +148,22 @@ def dashboard_coordenador(request):
     if request.user.tipo_usuario != 3:
         return HttpResponseForbidden()
     
-    revistas = Revista.objects.all()
-    
+    semestre_atual = Semestre.objects.order_by('-ano', '-semestre').first()
+
+    # Mais recentes primeiro + já conta os projetos de cada caderno numa query só
+    revistas = (
+        Revista.objects
+        .select_related('semestre')
+        .annotate(num_projetos=Count('projetos_revista'))
+        .order_by('-semestre__ano', '-semestre__semestre')
+    )
+
     return render(request, 'coordenador/dashboard_coordenador.html', {
-        'revistas': revistas
+        'revistas': revistas,
+        'semestre_atual': semestre_atual,
+        'stat_turmas': Turma.objects.filter(semestre=semestre_atual).count(),
+        'stat_aprovados': Projeto.objects.filter(turma__semestre=semestre_atual, status_projeto=2).count(),
+        'stat_cadernos': revistas.count(),
     })
 
 
@@ -144,7 +184,8 @@ def criar_turma_view(request):
             
             
             turma.responsavel = request.user
-            semestre_atual = Semestre.objects.first() 
+            # Semestre mais recente, como nos painéis (first() sem ordem pegava o de menor id)
+            semestre_atual = Semestre.objects.order_by('-ano', '-semestre').first()
             if not semestre_atual:
                 messages.error(request, "Nenhum semestre cadastrado no sistema.")
                 return render(request, 'professor/criar_turma.html', {'form': form})
@@ -220,14 +261,29 @@ def relatorio_view(request, inscricao_id):
             messages.error(request, "Este relatório não pode ser editado pois já foi submetido.")
             return redirect('relatorio_projeto', inscricao_id=inscricao.id)
 
-        form = ProjetoForm(request.POST, instance=projeto)
-        
+        # Os dois botões enviam o mesmo formulário: acao=rascunho ou acao=enviar
+        enviar = request.POST.get('acao') == 'enviar'
+
+        # Primeiro salva o que está na tela, mesmo incompleto (nada digitado se perde)
+        form = ProjetoForm(request.POST, instance=projeto, rascunho=True)
+
         if form.is_valid():
             form.save()
-            messages.success(request, "Dados do relatório salvos com sucesso!")
-            return redirect('relatorio_projeto', inscricao_id=inscricao.id)
+
+            if not enviar:
+                messages.success(request, "Dados do relatório salvos com sucesso!")
+                return redirect('relatorio_projeto', inscricao_id=inscricao.id)
+
+            # Envio: os mesmos dados, agora exigindo todos os campos e de 1 a 3 ODS
+            form = ProjetoForm(request.POST, instance=projeto)
+            if form.is_valid():
+                envia_para_analise(projeto)
+                messages.success(request, "Projeto submetido com sucesso!")
+                return redirect('dashboard_aluno')
+
+            messages.error(request, "Rascunho salvo, mas o resumo ainda não pode ser enviado. Preencha os campos indicados.")
         else:
-            messages.error(request, "Erro ao salvar. Verifique os campos (ODS: mínimo 1, máximo 3).")
+            messages.error(request, "Erro ao salvar. Verifique os campos (ODS: no máximo 3).")
     else:
         form = ProjetoForm(instance=projeto)
 
@@ -237,29 +293,48 @@ def relatorio_view(request, inscricao_id):
         "projeto": projeto,
         "form": form,
         "submissao": submissao,
+        "editavel": projeto.status_projeto in [0, 3],
+        # (id da seção no template, nome mostrado no card de progresso)
+        "secoes_progresso": [
+            ('identificacao', 'Identificação'),
+            ('caracteristicas', 'Características'),
+            ('conteudo', 'Conteúdo'),
+            ('referencia', 'Referência'),
+        ],
     })
 
 
+def envia_para_analise(projeto):
+    """Muda o status para "Em análise" e registra a submissão para o professor."""
+    with transaction.atomic():
+        projeto.status_projeto = 1
+        projeto.save()
+        Submissao.objects.create(projeto=projeto, resultado_submissao=0)
+
+
+# A tela de edição envia pelo relatorio_view (acao=enviar). Esta rota continua
+# para envios diretos, mas só aceita POST e valida o que já está salvo.
 @login_required
+@require_POST
 def submissao_view(request, projeto_id):
     if request.user.tipo_usuario != 1:
         return HttpResponseForbidden()
     
     projeto = get_object_or_404(Projeto, id=projeto_id, aluno=request.user)
-    
-   
-    if projeto.status_projeto in [0, 3]:
-        projeto.status_projeto = 1  
-        projeto.save()
-        
-        Submissao.objects.create(
-            projeto=projeto,
-            resultado_submissao=0
-        )
-        messages.success(request, "Projeto submetido com sucesso!")
-    else:
+
+    if projeto.status_projeto not in [0, 3]:
         messages.error(request, "Este projeto não pode ser submetido no momento.")
-        
+        return redirect('dashboard_aluno')
+
+    if not ProjetoForm(ProjetoForm.dados_salvos(projeto), instance=projeto).is_valid():
+        messages.error(request, "Complete o resumo antes de enviar: preencha todos os campos e de 1 a 3 ODS.")
+        inscricao = Inscricao.objects.filter(aluno=request.user, turma=projeto.turma).first()
+        if inscricao:
+            return redirect('relatorio_projeto', inscricao_id=inscricao.id)
+        return redirect('dashboard_aluno')
+
+    envia_para_analise(projeto)
+    messages.success(request, "Projeto submetido com sucesso!")
     return redirect('dashboard_aluno')
 
 @login_required
@@ -269,25 +344,27 @@ def painel_turma_view(request, turma_id):
 
     #busca turmas do professor conectado
     turma = get_object_or_404(
-        Turma,
+        Turma.objects.select_related('semestre', 'responsavel'),
         id=turma_id,
         responsavel=request.user
     )
 
-    # Busca projetos da turma encontrada
-    projetos = Projeto.objects.filter(
-        turma=turma,
-        submissoes__isnull=False
-    ).select_related(
-        'aluno'
-    ).distinct().order_by(
-        'aluno__first_name',
-        'aluno__username'
-)
+    # Projetos com pelo menos uma submissão; data_envio = data da última submissão
+    projetos = list(
+        Projeto.objects
+        .filter(turma=turma)
+        .select_related('aluno')
+        .annotate(data_envio=Max('submissoes__data_submissao'))
+        .filter(data_envio__isnull=False)
+        .order_by('-data_envio', '-id')
+    )
 
     return render(request, 'professor/painel_turma.html', {
         'turma': turma,
-        'projetos': projetos
+        'projetos': projetos,
+        'stat_submetidos': len(projetos),
+        'stat_em_analise': sum(1 for p in projetos if p.status_projeto == 1),
+        'stat_aprovados': sum(1 for p in projetos if p.status_projeto == 2),
     })
 
 @login_required
@@ -342,8 +419,33 @@ def turmas_coordenador_view(request):
     if request.user.tipo_usuario != 3:
         return HttpResponseForbidden()
  
-    semestres = Semestre.objects.prefetch_related('turmas').order_by('-ano', '-semestre')
- 
+    # Cada turma já vem com: professor, nº de resumos aprovados e
+    # quantos deles estão na revista do próprio semestre
+    turmas = (
+        Turma.objects
+        .select_related('responsavel')
+        .annotate(
+            num_aprovados=Count('projetos', filter=Q(projetos__status_projeto=2), distinct=True),
+            num_na_revista=Count(
+                'projetos__revistas',
+                filter=Q(projetos__revistas__revista__semestre=F('semestre')),
+                distinct=True,
+            ),
+        )
+        .order_by('nome_turma')
+    )
+
+    semestres = (
+        Semestre.objects
+        .select_related('revista')
+        .prefetch_related(Prefetch('turmas', queryset=turmas))
+        .annotate(
+            num_projetos_revista=Count('revista__projetos_revista', distinct=True),
+            num_aprovados=Count('turmas__projetos', filter=Q(turmas__projetos__status_projeto=2), distinct=True),
+        )
+        .order_by('-ano', '-semestre')
+    )
+
     return render(request, 'coordenador/turmas_coordenador.html', {
         'semestres': semestres,
     })
@@ -354,44 +456,59 @@ def projetos_aprovados_view(request, turma_id):
     if request.user.tipo_usuario != 3:
         return HttpResponseForbidden()
  
-    turma = get_object_or_404(Turma, id=turma_id)
- 
-    projetos = Projeto.objects.filter(
-        turma=turma,
-        status_projeto=2
-    ).select_related('aluno').prefetch_related('programa', 'ods')
- 
+    turma = get_object_or_404(Turma.objects.select_related('semestre', 'responsavel'), id=turma_id)
+
+    # data_envio = data da última submissão (o sistema não guarda a data da aprovação)
+    projetos = (
+        Projeto.objects
+        .filter(turma=turma, status_projeto=2)
+        .select_related('aluno')
+        .prefetch_related('programa', 'ods')
+        .annotate(data_envio=Max('submissoes__data_submissao'))
+        .order_by(F('data_envio').desc(nulls_last=True), '-id')
+    )
+
     revista, _ = Revista.objects.get_or_create(
         semestre=turma.semestre,
         defaults={'titulo': f'Revista {turma.semestre}'}
     )
- 
+
     projetos_na_revista = set(
         ProjetoRevista.objects.filter(revista=revista).values_list('projeto_id', flat=True)
     )
- 
+
+    # Cada interruptor da tela envia um projeto por vez: incluir=1 liga, sem incluir desliga
     if request.method == 'POST':
-        ids_selecionados = request.POST.getlist('projetos_selecionados')
- 
-        adicionados = 0
-        for projeto_id in ids_selecionados:
-            projeto = get_object_or_404(Projeto, id=projeto_id, turma=turma, status_projeto=2)
+        projeto = get_object_or_404(Projeto, id=request.POST.get('projeto_id'), turma=turma, status_projeto=2)
+
+        if request.POST.get('incluir') == '1':
             _, criado = ProjetoRevista.objects.get_or_create(revista=revista, projeto=projeto)
             if criado:
-                adicionados += 1
- 
-        if adicionados:
-            messages.success(request, f"{adicionados} projeto(s) adicionado(s) à revista.")
+                messages.success(request, f'"{projeto.titulo_projeto}" foi incluído na {revista.titulo}.')
         else:
-            messages.info(request, "Os projetos selecionados já estavam na revista.")
- 
-        return redirect('projetos_aprovados', turma_id=turma.id)
- 
+            removidos, _ = ProjetoRevista.objects.filter(revista=revista, projeto=projeto).delete()
+            if removidos:
+                messages.info(request, f'"{projeto.titulo_projeto}" foi retirado da {revista.titulo}.')
+
+        # O botão da tela de leitura volta para ela mesma
+        if request.POST.get('voltar') == 'leitura':
+            return redirect('projeto_leitura', projeto_id=projeto.id)
+
+        # volta para o mesmo card em vez do topo da página
+        return redirect(reverse('projetos_aprovados', args=[turma.id]) + f'#projeto-{projeto.id}')
+
+    projetos = list(projetos)
+    for projeto in projetos:
+        projeto.na_revista = projeto.id in projetos_na_revista
+
+    total_incluidos = sum(1 for p in projetos if p.na_revista)
+
     return render(request, 'coordenador/projetos_aprovados.html', {
         'turma': turma,
         'projetos': projetos,
-        'projetos_na_revista': projetos_na_revista,
         'revista': revista,
+        'total_incluidos': total_incluidos,
+        'total_nao_incluidos': len(projetos) - total_incluidos,
     })
  
  
@@ -400,10 +517,22 @@ def projeto_leitura_view(request, projeto_id):
     if request.user.tipo_usuario != 3:
         return HttpResponseForbidden()
  
-    projeto = get_object_or_404(Projeto, id=projeto_id, status_projeto=2)
- 
+    # data_envio = data da última submissão (o sistema não guarda a data da aprovação)
+    projeto = get_object_or_404(
+        Projeto.objects
+        .select_related('aluno', 'turma__semestre', 'turma__responsavel')
+        .annotate(data_envio=Max('submissoes__data_submissao')),
+        id=projeto_id, status_projeto=2,
+    )
+
+    # Só consulta: a revista do semestre é criada ao incluir o primeiro resumo
+    revista = Revista.objects.filter(semestre=projeto.turma.semestre).first()
+    na_revista = bool(revista) and ProjetoRevista.objects.filter(revista=revista, projeto=projeto).exists()
+
     return render(request, 'coordenador/projeto_leitura.html', {
         'projeto': projeto,
+        'revista': revista,
+        'na_revista': na_revista,
     })
 
 
@@ -414,22 +543,26 @@ def pdf_resumo_view(request, projeto_id):
         projeto = get_object_or_404(Projeto, id=projeto_id, aluno=request.user)
     elif request.user.tipo_usuario == 2:
         projeto = get_object_or_404(Projeto, id=projeto_id, turma__responsavel=request.user)
+    elif request.user.tipo_usuario == 3:
+        # Coordenador baixa qualquer resumo aprovado (mesma regra da tela de leitura)
+        projeto = get_object_or_404(Projeto, id=projeto_id, status_projeto=2)
     else:
         return HttpResponseForbidden()
 
 
+    # Texto do aluno vai escapado para não quebrar (nem injetar comandos no) LaTeX
     dados = {
         'document_type': 'resumo',
-        'titulo_resumo': projeto.titulo_projeto,
-        'autores': projeto.nome_autores,
-        'disciplina': projeto.turma.disciplina,
-        'pepict': ', '.join(p.nome for p in projeto.programa.all()),
-        'objetivos': projeto.objetivos_trabalho,
-        'metodologia': projeto.metodologia_projeto,
-        'resultados': projeto.resultados_projeto,
-        'ods': ', '.join(str(o) for o in projeto.ods.all()),
-        'reflexao': projeto.reflexao_projeto,
-        'referencias': projeto.referencia_projeto or '',
+        'titulo_resumo': escapa_latex(projeto.titulo_projeto),
+        'autores': escapa_latex(projeto.nome_autores),
+        'disciplina': escapa_latex(projeto.turma.disciplina),
+        'pepict': escapa_latex(', '.join(p.nome for p in projeto.programa.all())),
+        'objetivos': escapa_latex(projeto.objetivos_trabalho),
+        'metodologia': escapa_latex(projeto.metodologia_projeto),
+        'resultados': escapa_latex(projeto.resultados_projeto),
+        'ods': escapa_latex(', '.join(str(o) for o in projeto.ods.all())),
+        'reflexao': escapa_latex(projeto.reflexao_projeto),
+        'referencias': escapa_latex(projeto.referencia_projeto),
     }
 
     temporary_directory = tempfile.TemporaryDirectory()
@@ -452,8 +585,23 @@ def pdf_resumo_view(request, projeto_id):
         temporary_directory.cleanup()
         messages.error(request, f"Erro ao gerar o PDF: {str(e)}")
 
- 
-    return redirect(request.META.get('HTTP_REFERER', 'dashboard_aluno'))
+
+    # Sem Referer, volta ao painel do próprio perfil (o do aluno daria 403 aos outros)
+    return redirect(request.META.get('HTTP_REFERER') or PAINEL_POR_TIPO.get(request.user.tipo_usuario, 'dashboard_aluno'))
+
+
+def projetos_do_caderno(revista):
+    """
+    Resumos aprovados incluídos na revista, na ordem do PDF: um capítulo por
+    turma, resumos por título. Usado pelo PDF e pela tela do caderno.
+    """
+    return (
+        Projeto.objects
+        .filter(revistas__revista=revista, status_projeto=2)
+        .select_related('turma')
+        .prefetch_related('programa')
+        .order_by('turma__disciplina', 'turma__nome_turma', 'turma__id', 'titulo_projeto', 'id')
+    )
 
 
 def gera_capitulos(revista_id, output_dir):
@@ -464,69 +612,71 @@ def gera_capitulos(revista_id, output_dir):
     revista = get_object_or_404(Revista, pk=revista_id)
 
     turmas = Turma.objects.filter(semestre=revista.semestre)
-
+    partes = []
+    
+    #for turma, projetos in groupby(projetos_do_caderno(revista), key=lambda p: p.turma):
     with open(caminho_temp_capitulos, "w", encoding="utf-8") as arquivo:
         for turma in turmas:
 
             arquivo.write(fr"\chapter{{{turma.disciplina}}}" + "\n\n")
 
             projetos = Projeto.objects.filter(turma=turma)
+            
+            partes.append(fr"\chapter{{{escapa_latex(turma.disciplina)}}}" + "\n\n")
 
             for projeto in projetos:
 
+
                 programas_vinculados = ", ".join([p.nome for p in projeto.programa.all()])
 
-                arquivo.write(fr"\newpage" + "\n")
-                arquivo.write(fr"\section{{{projeto.titulo_projeto}}}" + "\n")
+                # Texto do aluno vai escapado para não quebrar (nem injetar comandos no) LaTeX
+                secoes = [
+                    ('Autores', projeto.nome_autores),
+                    ('Disciplina e Curso', turma.curso),
+                    ('Programa PEPICT vinculado', programas_vinculados),
+                    ('Objetivos', projeto.objetivos_trabalho),
+                    ('Metodologia', projeto.metodologia_projeto),
+                    ('Resultados e Produtos', projeto.resultados_projeto),
+                    ('Relação com os ODS', projeto.justificativa_ods),
+                    ('Reflexão Crítica', projeto.reflexao_projeto),
+                    ('Referências', projeto.referencia_projeto),
+                ]
 
-                arquivo.write(fr"\noindent" + "\n")
-                arquivo.write(fr"\textbf{{Autores}}" + "\n" + f"{projeto.nome_autores}" + "\n\n")
-                arquivo.write(fr"\vspace{{0.7cm}}" + "\n")
+                partes.append(fr"\newpage" + "\n")
+                partes.append(fr"\section{{{escapa_latex(projeto.titulo_projeto)}}}" + "\n")
 
-                arquivo.write(fr"\noindent" + "\n")
-                arquivo.write(fr"\textbf{{Disciplina e Curso}}" + "\n" + f"{turma.curso}" + "\n\n")
-                arquivo.write(fr"\vspace{{0.7cm}}" + "\n")
+                for rotulo, texto in secoes:
+                    partes.append(fr"\noindent" + "\n")
+                    partes.append(fr"\textbf{{{rotulo}}}" + "\n" + escapa_latex(texto) + "\n\n")
+                    partes.append(fr"\vspace{{0.7cm}}" + "\n")
 
-                arquivo.write(fr"\noindent" + "\n")
-                arquivo.write(fr"\textbf{{Programa PEPICT vinculado}}" + "\n" + f"{programas_vinculados}" + "\n\n")
-                arquivo.write(fr"\vspace{{0.7cm}}" + "\n")
-
-                arquivo.write(fr"\noindent" + "\n")
-                arquivo.write(fr"\textbf{{Objetivos}}" + "\n" + f"{projeto.objetivos_trabalho}" + "\n\n")
-                arquivo.write(fr"\vspace{{0.7cm}}" + "\n")
-            
-                arquivo.write(fr"\noindent" + "\n")
-                arquivo.write(fr"\textbf{{Metodologia}}" + "\n" + f"{projeto.metodologia_projeto}" + "\n\n")
-                arquivo.write(fr"\vspace{{0.7cm}}" + "\n")
-
-                arquivo.write(fr"\noindent" + "\n")
-                arquivo.write(fr"\textbf{{Resultados e Produtos}}" + "\n" + f"{projeto.resultados_projeto}" + "\n\n")
-                arquivo.write(fr"\vspace{{0.7cm}}" + "\n")
-
-                arquivo.write(fr"\noindent" + "\n")
-                arquivo.write(fr"\textbf{{Relação com os ODS}}" + "\n" + f"{projeto.justificativa_ods}" + "\n\n")
-                arquivo.write(fr"\vspace{{0.7cm}}" + "\n")
-
-                arquivo.write(fr"\noindent" + "\n")
-                arquivo.write(fr"\textbf{{Reflexão Crítica}}" + "\n" + f"{projeto.reflexao_projeto}" + "\n\n")
-                arquivo.write(fr"\vspace{{0.7cm}}" + "\n")
-
-                arquivo.write(fr"\noindent" + "\n")
-                arquivo.write(fr"\textbf{{Referências}}" + "\n" + f"{projeto.referencia_projeto}" + "\n\n")
-                arquivo.write(fr"\vspace{{0.7cm}}" + "\n")
+    # Grava tudo de uma vez (o to_tex lê este arquivo)
+    with open(caminho_temp_capitulos, "w", encoding="utf-8") as arquivo:
+        arquivo.write("".join(partes))
 
 @login_required
 def gera_revista_view(request, revista_id):
     if request.user.tipo_usuario != 3:
         return HttpResponseForbidden()
 
-    revista = get_object_or_404(Revista, pk=revista_id)
+    # Executa a escrita sequencial no arquivo txt
+    gera_capitulos(revista_id)
+    
+    revista = get_object_or_404(Revista.objects.select_related('semestre__coordenador'), pk=revista_id)
     data_formatada = revista.data_criacao.strftime('%Y')
 
+    # Conteúdo salvo na tela "Caderno de Resumos"; em branco usa o padrão
     dados = {
         'document_type': 'revista',
-        'titulo_revista': revista.titulo,
+        'titulo_revista': escapa_latex(revista.titulo),
         'data': data_formatada,
+        'introducao': escapa_latex_paragrafos(revista.introducao or revista.introducao_padrao()),
+        'coordenador_geral': escapa_latex_linhas(revista.coordenador_geral or revista.coordenador_geral_padrao()),
+        'coordenador_editorial': escapa_latex_linhas(revista.coordenador_editorial),
+        'comissao': escapa_latex_linhas(revista.comissao),
+        'revisao': escapa_latex_linhas(revista.revisao),
+        'diagramacao': escapa_latex_linhas(revista.diagramacao),
+        'organizadores': escapa_latex_linhas(revista.organizadores),
     }
 
     temporary_directory = tempfile.TemporaryDirectory()
@@ -553,6 +703,33 @@ def gera_revista_view(request, revista_id):
  
     return redirect(request.META.get('HTTP_REFERER', 'dashboard_coordenador'))
 
+
+@login_required
+def caderno_view(request, revista_id):
+    if request.user.tipo_usuario != 3:
+        return HttpResponseForbidden()
+
+    revista = get_object_or_404(Revista.objects.select_related('semestre__coordenador'), pk=revista_id)
+
+    if request.method == 'POST':
+        form = RevistaForm(request.POST, instance=revista)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Caderno salvo. O PDF já sai com as alterações.')
+            return redirect('caderno', revista_id=revista.id)
+    else:
+        form = RevistaForm(instance=revista)
+
+    # Mesma lista e ordem do PDF; o template agrupa por turma
+    projetos = projetos_do_caderno(revista)
+
+    return render(request, 'coordenador/caderno.html', {
+        'revista': revista,
+        'form': form,
+        'projetos': projetos,
+    })
+
+
 @login_required
 def gerencia_tipo_usuario_view(request):
 
@@ -565,14 +742,18 @@ def gerencia_tipo_usuario_view(request):
     if form.is_valid() and form.cleaned_data.get('username'):
         username_busca = form.cleaned_data.get('username')
 
-        usuarios = Usuario.objects.filter(
-            username__icontains=username_busca,
-            tipo_usuario__in=[1, 2]
+        # num_turmas: turmas em que é docente (avisa antes de virar aluno)
+        usuarios = (
+            Usuario.objects
+            .filter(username__icontains=username_busca, tipo_usuario__in=[1, 2])
+            .annotate(num_turmas=Count('turmas_responsavel'))
+            .order_by('username')
         )
 
     if request.method == 'POST':
             usuario_id = request.POST.get('usuario_id')
-            usuario_foco = get_object_or_404(Usuario, id=usuario_id)
+            # Só aluno e professor: um coordenador aqui deixava "menssagem" sem valor (erro 500)
+            usuario_foco = get_object_or_404(Usuario, id=usuario_id, tipo_usuario__in=[1, 2])
 
             if usuario_foco.tipo_usuario == 1:
                 usuario_foco.tipo_usuario = 2 
@@ -585,9 +766,33 @@ def gerencia_tipo_usuario_view(request):
             messages.success(request, menssagem)
             
             
-            return redirect(f"{request.path}?username={request.GET.get('username', '')}")
+            return redirect(f"{request.path}?{urlencode({'username': request.GET.get('username', '')})}")
 
     return render(request, 'coordenador/gerenciar_usuarios.html', {
         'form': form,
         'usuarios': usuarios
+    })
+
+
+# Páginas do rodapé (Central de ajuda e Privacidade) --------------------------
+
+# Nome da URL do painel de cada perfil (tipo_usuario), usado no "Voltar"
+PAINEL_POR_TIPO = {
+    1: 'dashboard_aluno',
+    2: 'dashboard_professor',
+    3: 'dashboard_coordenador',
+}
+
+
+@login_required
+def ajuda_view(request):
+    return render(request, 'ajuda.html', {
+        'url_painel': PAINEL_POR_TIPO.get(request.user.tipo_usuario, 'dashboard_aluno'),
+    })
+
+
+@login_required
+def privacidade_view(request):
+    return render(request, 'privacidade.html', {
+        'url_painel': PAINEL_POR_TIPO.get(request.user.tipo_usuario, 'dashboard_aluno'),
     })

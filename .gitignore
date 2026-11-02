@@ -5,6 +5,8 @@ __pycache__/
 
 # C extensions
 *.so
+dados.json
+CLAUDE.md
 
 # Distribution / packaging
 .Python
@@ -206,3 +208,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Arquivos gerados na criação de PDF (pdflatex)
+plataformaResumosAPP/arquivos_temp/

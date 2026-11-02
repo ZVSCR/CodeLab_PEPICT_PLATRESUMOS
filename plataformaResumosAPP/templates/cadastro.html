@@ -1,56 +1,71 @@
-<form method="post">
+{% extends 'base_auth.html' %}
+
+{% block title %}Cadastro{% endblock %}
+
+{% block auth_content %}
+<h1 class="auth-titulo">Criar conta</h1>
+<p class="auth-subtitulo">Preencha seus dados para se cadastrar.</p>
+
+<form method="post" novalidate>
     {% csrf_token %}
 
-    <div>
+    <div class="mb-3">
         {{ form.username.label_tag }}
         {{ form.username }}
         {% for error in form.username.errors %}
-            <p class="error">{{ error }}</p>
+            <div class="auth-erro">{{ error }}</div>
         {% endfor %}
     </div>
 
-    <div>
+    <div class="mb-3">
         {{ form.email.label_tag }}
         {{ form.email }}
         {% for error in form.email.errors %}
-            <p class="error">{{ error }}</p>
+            <div class="auth-erro">{{ error }}</div>
         {% endfor %}
     </div>
 
-    <div>
-        {{ form.first_name.label_tag }}
-        {{ form.first_name }}
+    <!-- Nome e sobrenome lado a lado (empilham no celular) -->
+    <div class="row g-3 mb-3">
+        <div class="col-sm-6">
+            {{ form.first_name.label_tag }}
+            {{ form.first_name }}
+        </div>
+        <div class="col-sm-6">
+            {{ form.last_name.label_tag }}
+            {{ form.last_name }}
+        </div>
     </div>
 
-    <div>
-        {{ form.last_name.label_tag }}
-        {{ form.last_name }}
-    </div>
-
-    <div>
+    <div class="mb-3">
         {{ form.ra.label_tag }}
         {{ form.ra }}
     </div>
 
-    <div>
+    <div class="mb-3">
         {{ form.password1.label_tag }}
         {{ form.password1 }}
         {% for error in form.password1.errors %}
-            <p class="error">{{ error }}</p>
+            <div class="auth-erro">{{ error }}</div>
         {% endfor %}
     </div>
 
-    <div>
+    <div class="mb-4">
         {{ form.password2.label_tag }}
         {{ form.password2 }}
         {% for error in form.password2.errors %}
-            <p class="error">{{ error }}</p>
+            <div class="auth-erro">{{ error }}</div>
         {% endfor %}
     </div>
 
     {% for error in form.non_field_errors %}
-        <p class="error">{{ error }}</p>
+        <div class="alert alert-danger">{{ error }}</div>
     {% endfor %}
 
-    <button type="submit">Cadastrar</button>
+    <button type="submit" class="btn auth-botao w-100">Cadastrar</button>
 </form>
+
+<p class="text-center mt-4 mb-0 auth-rodape">
+    Já tem conta? <a href="{% url 'login' %}">Entrar</a>
+</p>
+{% endblock %}

@@ -18,6 +18,7 @@ jinja2 = "*"
 babel = "*"
 djangorestframework = "*"
 weasyprint = "*"
+python-dotenv = "*"
 
 [dev-packages]
 
