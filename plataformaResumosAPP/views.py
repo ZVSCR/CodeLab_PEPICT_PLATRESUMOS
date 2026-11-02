@@ -1,6 +1,7 @@
 import os
 import random
 import string
+import tempfile
 from .topdf import to_pdf
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout, get_user_model
@@ -12,6 +13,18 @@ from .models import Turma, Semestre, Inscricao, Projeto, Programa, ODS, Submissa
 from django.db import IntegrityError
 
 User = get_user_model()
+
+
+class TemporaryFileResponse(FileResponse):
+    def __init__(self, file_to_stream, temporary_directory, **kwargs):
+        self.temporary_directory = temporary_directory
+        super().__init__(file_to_stream, **kwargs)
+
+    def close(self):
+        try:
+            super().close()
+        finally:
+            self.temporary_directory.cleanup()
 
 
 def login_view(request):
@@ -419,54 +432,50 @@ def pdf_resumo_view(request, projeto_id):
         'referencias': projeto.referencia_projeto or '',
     }
 
+    temporary_directory = tempfile.TemporaryDirectory()
     try:
-        pdf_gerado = to_pdf(dados)
+        pdf_gerado = to_pdf(dados, temporary_directory.name)
 
         if os.path.exists(pdf_gerado):
-            response = FileResponse(open(pdf_gerado, 'rb'), as_attachment=True)
+            response = TemporaryFileResponse(
+                open(pdf_gerado, 'rb'),
+                temporary_directory,
+                as_attachment=True,
+            )
             response['Content-Disposition'] = f'attachment; filename="resumo_{projeto.id}.pdf"'
-            os.remove(pdf_gerado)
             return response
 
+        temporary_directory.cleanup()
         messages.error(request, "O arquivo PDF não foi encontrado.")
 
     except Exception as e:
+        temporary_directory.cleanup()
         messages.error(request, f"Erro ao gerar o PDF: {str(e)}")
 
  
     return redirect(request.META.get('HTTP_REFERER', 'dashboard_aluno'))
 
 
-def gera_capitulos(revista_id): 
+def gera_capitulos(revista_id, output_dir):
 
-    temp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'arquivos_temp')
-    os.makedirs(temp_dir, exist_ok=True)
-
-    caminho_temp_capitulos = os.path.join(temp_dir, "conteudo_revista.txt")
+    os.makedirs(output_dir, exist_ok=True)
+    caminho_temp_capitulos = os.path.join(output_dir, "conteudo_revista.txt")
 
     revista = get_object_or_404(Revista, pk=revista_id)
 
-    # Limpa o arquivo no início (começa do zero)
-    with open(caminho_temp_capitulos, "w", encoding="utf-8") as arquivo:
-        arquivo.write("")
-
     turmas = Turma.objects.filter(semestre=revista.semestre)
 
-    for turma in turmas:
+    with open(caminho_temp_capitulos, "w", encoding="utf-8") as arquivo:
+        for turma in turmas:
 
-        
-        with open(caminho_temp_capitulos, "a", encoding="utf-8") as arquivo:
             arquivo.write(fr"\chapter{{{turma.disciplina}}}" + "\n\n")
 
-        
-        projetos = Projeto.objects.filter(turma=turma)
+            projetos = Projeto.objects.filter(turma=turma)
 
-        
-        for projeto in projetos:
+            for projeto in projetos:
 
-            programas_vinculados = ", ".join([p.nome for p in projeto.programa.all()])
+                programas_vinculados = ", ".join([p.nome for p in projeto.programa.all()])
 
-            with open(caminho_temp_capitulos, "a", encoding="utf-8") as arquivo:
                 arquivo.write(fr"\newpage" + "\n")
                 arquivo.write(fr"\section{{{projeto.titulo_projeto}}}" + "\n")
 
@@ -511,9 +520,6 @@ def gera_revista_view(request, revista_id):
     if request.user.tipo_usuario != 3:
         return HttpResponseForbidden()
 
-    # Executa a escrita sequencial no arquivo txt
-    gera_capitulos(revista_id)
-    
     revista = get_object_or_404(Revista, pk=revista_id)
     data_formatada = revista.data_criacao.strftime('%Y')
 
@@ -523,18 +529,25 @@ def gera_revista_view(request, revista_id):
         'data': data_formatada,
     }
 
+    temporary_directory = tempfile.TemporaryDirectory()
     try:
-        pdf_gerado = to_pdf(dados)
+        gera_capitulos(revista_id, temporary_directory.name)
+        pdf_gerado = to_pdf(dados, temporary_directory.name)
 
         if os.path.exists(pdf_gerado):
-            response = FileResponse(open(pdf_gerado, 'rb'), as_attachment=True)
+            response = TemporaryFileResponse(
+                open(pdf_gerado, 'rb'),
+                temporary_directory,
+                as_attachment=True,
+            )
             response['Content-Disposition'] = f'attachment; filename="resumo_{revista.id}.pdf"'
-
             return response
 
+        temporary_directory.cleanup()
         messages.error(request, "O arquivo PDF não foi encontrado.")
 
     except Exception as e:
+        temporary_directory.cleanup()
         messages.error(request, f"Erro ao gerar o PDF: {str(e)}")
 
  
