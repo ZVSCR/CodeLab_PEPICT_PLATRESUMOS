@@ -27,8 +27,10 @@ RUN pipenv install --system --deploy && pip uninstall -y pipenv
 COPY . /app/
 
 # Junta os arquivos estáticos em /app/static (servidos pelo WhiteNoise).
-# A SECRET_KEY aqui é só para o comando rodar no build; a de verdade vem do .env do servidor.
-RUN SECRET_KEY=build-only python manage.py collectstatic --noinput
+# SECRET_KEY e DATABASE_URL aqui são só para o comando rodar no build (ele não acessa o banco);
+# as de verdade vêm do .env do servidor.
+RUN SECRET_KEY=build-only DATABASE_URL=postgresql://build:build@localhost/build \
+    python manage.py collectstatic --noinput
 
 # Roda como usuário comum, não como root
 RUN useradd --create-home app \

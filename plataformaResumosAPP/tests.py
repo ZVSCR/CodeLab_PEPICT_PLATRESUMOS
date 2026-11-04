@@ -186,12 +186,15 @@ class PdfResumoCoordenadorTest(TestCase):
         with patch('plataformaResumosAPP.views.to_pdf', return_value=pdf.name) as to_pdf:
             resposta = self.client.get(reverse('pdf_resumo', args=[self.projeto.id]))
         resposta.dados = to_pdf.call_args.args[0] if to_pdf.called else None
+        # Lê o download até o fim para o test client fechar o arquivo (veja _pdf_real)
+        resposta.conteudo = b''.join(resposta.streaming_content) if resposta.streaming else None
         return resposta
 
     def test_coordenador_baixa_resumo_aprovado(self):
         resposta = self._baixar_pdf()
         self.assertEqual(resposta.status_code, 200)
         self.assertIn('attachment', resposta['Content-Disposition'])
+        self.assertEqual(resposta.conteudo, b'%PDF-1.4')
 
     def test_coordenador_nao_baixa_resumo_nao_aprovado(self):
         for status in (0, 1, 3):
@@ -355,7 +358,10 @@ class CadernoEditavelTest(TestCase):
         with patch('plataformaResumosAPP.views.to_pdf', side_effect=to_pdf_registrando):
             resposta = self.client.get(reverse('pdf_revista', args=[self.revista.id]))
         self.assertEqual(resposta.status_code, 200)
-        resposta.close()
+        # Lê o download até o fim: assim o test client fecha o arquivo sem fechar o banco.
+        # (resposta.close() dispara o sinal de fim de requisição, que fecha a conexão do
+        # Postgres no meio da transação do teste e quebra os testes seguintes.)
+        b''.join(resposta.streaming_content)
         texto = subprocess.run(['pdftotext', '-layout', gerados[0], '-'], capture_output=True, text=True).stdout
         return texto.split('\f')
 

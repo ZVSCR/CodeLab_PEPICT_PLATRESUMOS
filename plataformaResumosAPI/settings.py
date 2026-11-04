@@ -99,11 +99,16 @@ AUTH_USER_MODEL = 'plataformaResumosAPP.Usuario'
 
 AUTH_PASSWORD_VALIDATORS = []
 
+# O banco é sempre PostgreSQL, configurado pela DATABASE_URL:
+#  - desenvolvimento: Postgres local do docker-compose.yml
+#  - produção: Neon (com ?sslmode=require)
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if not DATABASE_URL:
+    raise RuntimeError('Defina a variável de ambiente DATABASE_URL (veja o .env.example).')
+
 DATABASES = {
-    'default': dj_database_url.config(
-        # Produção: DATABASE_URL do Neon (com ?sslmode=require).
-        # Sem a variável, usa o SQLite local.
-        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
+    'default': dj_database_url.parse(
+        DATABASE_URL,
         conn_max_age=600,
         # Testa a conexão antes de reutilizar: o Neon fecha conexões ociosas
         conn_health_checks=True,
