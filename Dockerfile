@@ -1,49 +1,50 @@
-# Usa uma imagem oficial do Python baseada em Debian (slim)
-FROM python:3.12-slim 
+# Imagem oficial do Python baseada em Debian (slim)
+FROM python:3.12-slim
 
-# Define o diretório de trabalho dentro do container
 WORKDIR /app
 
-# Evita que o Python escreva arquivos .pyc e ativa o buffer de saída
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+# Não gera arquivos .pyc e mostra os logs do Python na hora
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
-# Instala dependências do sistema
+# LaTeX para gerar os PDFs (pdflatex + pacotes usados em arquivosTEX/)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    wget \
-    fontconfig \
-    xvfb \
-    # Instalação do LaTeX e pacotes de suporte (inclui o abnt2 e textlive)
     texlive-latex-base \
     texlive-latex-recommended \
     texlive-latex-extra \
     texlive-lang-portuguese \
     texlive-fonts-recommended \
-    texlive-fonts-extra \
-    && wget -q https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/wkhtmltox_0.12.6.1-3.bookworm_amd64.deb -O /tmp/wkhtmltox.deb \
-    && apt-get install -y --no-install-recommends /tmp/wkhtmltox.deb \
-    && rm /tmp/wkhtmltox.deb \
+    lmodern \
     && rm -rf /var/lib/apt/lists/*
 
-# Instala o pipenv
+# Dependências Python, instaladas a partir do Pipfile.lock (versões fixas).
+# Fica antes do COPY do código para o Docker reaproveitar esta camada quando só o código muda.
 RUN pip install --no-cache-dir pipenv
-
-# Copia os arquivos de dependencias do Python
 COPY Pipfile Pipfile.lock /app/
+RUN pipenv install --system --deploy && pip uninstall -y pipenv
 
-# Instala as dependencias do Pipenv no escopo do sistema do container
-RUN pipenv install --system --deploy
-
-# Copia o restante do codigo do projeto
+# Código do projeto
 COPY . /app/
 
-# Torna o entrypoint executavel
-RUN chmod +x /app/entrypoint.sh
+# Junta os arquivos estáticos em /app/static (servidos pelo WhiteNoise).
+# A SECRET_KEY aqui é só para o comando rodar no build; a de verdade vem do .env do servidor.
+RUN SECRET_KEY=build-only python manage.py collectstatic --noinput
+
+# Roda como usuário comum, não como root
+RUN useradd --create-home app \
+    && chmod +x /app/entrypoint.sh \
+    && chown -R app:app /app/plataformaResumosAPP
+USER app
+
+EXPOSE 8000
 
 ENTRYPOINT ["/app/entrypoint.sh"]
 
-# Executa migracoes, coleta estaticos e inicia o servidor
-CMD python manage.py migrate && \
-    python manage.py collectstatic --noinput && \
-    gunicorn plataformaResumosAPI.wsgi:application --bind 0.0.0.0:$PORT
+# Configuração do gunicorn por variáveis que ele mesmo lê:
+#  - WEB_CONCURRENCY: número de processos (pode ser trocado no .env)
+#  - timeout alto porque a geração do PDF da revista pode demorar
+ENV WEB_CONCURRENCY=3 \
+    GUNICORN_CMD_ARGS="--bind 0.0.0.0:8000 --timeout 300 --access-logfile -"
+
+# Formato JSON: o gunicorn recebe direto os sinais de parada do Docker e desliga sem cortar requisições
+CMD ["gunicorn", "plataformaResumosAPI.wsgi:application"]
