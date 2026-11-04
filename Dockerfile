@@ -1,5 +1,7 @@
-# Imagem oficial do Python baseada em Debian (slim)
-FROM python:3.12-slim
+# Imagem oficial do Python baseada em Debian (slim).
+# O arquivo tem 3 etapas: "base" (tudo que o app precisa), "dev" (base + ferramentas
+# de desenvolvimento) e "prod" (a imagem do servidor, padrão quando não se escolhe etapa).
+FROM python:3.12-slim AS base
 
 WORKDIR /app
 
@@ -34,13 +36,13 @@ RUN SECRET_KEY=build-only DATABASE_URL=postgresql://build:build@localhost/build 
 
 # Roda como usuário comum, não como root
 RUN useradd --create-home app \
-    && chmod +x /app/entrypoint.sh \
     && chown -R app:app /app/plataformaResumosAPP
 USER app
 
 EXPOSE 8000
 
-ENTRYPOINT ["/app/entrypoint.sh"]
+# Chamado pelo sh: funciona mesmo se o arquivo perder a permissão de execução (ex.: clone no Windows)
+ENTRYPOINT ["sh", "/app/entrypoint.sh"]
 
 # Configuração do gunicorn por variáveis que ele mesmo lê:
 #  - WEB_CONCURRENCY: número de processos (pode ser trocado no .env)
@@ -50,3 +52,18 @@ ENV WEB_CONCURRENCY=3 \
 
 # Formato JSON: o gunicorn recebe direto os sinais de parada do Docker e desliga sem cortar requisições
 CMD ["gunicorn", "plataformaResumosAPI.wsgi:application"]
+
+
+# --- Desenvolvimento (docker-compose.yml) ---
+FROM base AS dev
+# pdftotext: usado pelos testes que leem o PDF gerado
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
+USER app
+# Servidor do Django que recarrega sozinho quando o código muda
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+
+# --- Produção (VPS) ---
+FROM base AS prod
