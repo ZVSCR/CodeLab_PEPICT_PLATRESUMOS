@@ -1,6 +1,7 @@
 import os
 import random
 import string
+import tempfile
 from itertools import groupby
 from .topdf import to_pdf, escapa_latex, escapa_latex_linhas, escapa_latex_paragrafos
 from django.shortcuts import render, redirect, get_object_or_404
@@ -17,6 +18,18 @@ from django.urls import reverse
 from urllib.parse import urlencode
 
 User = get_user_model()
+
+
+class TemporaryFileResponse(FileResponse):
+    def __init__(self, file_to_stream, temporary_directory, **kwargs):
+        self.temporary_directory = temporary_directory
+        super().__init__(file_to_stream, **kwargs)
+
+    def close(self):
+        try:
+            super().close()
+        finally:
+            self.temporary_directory.cleanup()
 
 
 def login_view(request):
@@ -552,18 +565,24 @@ def pdf_resumo_view(request, projeto_id):
         'referencias': escapa_latex(projeto.referencia_projeto),
     }
 
+    temporary_directory = tempfile.TemporaryDirectory()
     try:
-        pdf_gerado = to_pdf(dados)
+        pdf_gerado = to_pdf(dados, temporary_directory.name)
 
         if os.path.exists(pdf_gerado):
-            response = FileResponse(open(pdf_gerado, 'rb'), as_attachment=True)
+            response = TemporaryFileResponse(
+                open(pdf_gerado, 'rb'),
+                temporary_directory,
+                as_attachment=True,
+            )
             response['Content-Disposition'] = f'attachment; filename="resumo_{projeto.id}.pdf"'
-            os.remove(pdf_gerado)
             return response
 
+        temporary_directory.cleanup()
         messages.error(request, "O arquivo PDF não foi encontrado.")
 
     except Exception as e:
+        temporary_directory.cleanup()
         messages.error(request, f"Erro ao gerar o PDF: {str(e)}")
 
 
@@ -585,45 +604,51 @@ def projetos_do_caderno(revista):
     )
 
 
-def gera_capitulos(revista_id): 
+def gera_capitulos(revista_id, output_dir):
 
-    temp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'arquivos_temp')
-    os.makedirs(temp_dir, exist_ok=True)
-
-    caminho_temp_capitulos = os.path.join(temp_dir, "conteudo_revista.txt")
+    os.makedirs(output_dir, exist_ok=True)
+    caminho_temp_capitulos = os.path.join(output_dir, "conteudo_revista.txt")
 
     revista = get_object_or_404(Revista, pk=revista_id)
 
+    turmas = Turma.objects.filter(semestre=revista.semestre)
     partes = []
+    
+    #for turma, projetos in groupby(projetos_do_caderno(revista), key=lambda p: p.turma):
+    with open(caminho_temp_capitulos, "w", encoding="utf-8") as arquivo:
+        for turma in turmas:
 
-    for turma, projetos in groupby(projetos_do_caderno(revista), key=lambda p: p.turma):
+            arquivo.write(fr"\chapter{{{turma.disciplina}}}" + "\n\n")
 
-        partes.append(fr"\chapter{{{escapa_latex(turma.disciplina)}}}" + "\n\n")
+            projetos = Projeto.objects.filter(turma=turma)
+            
+            partes.append(fr"\chapter{{{escapa_latex(turma.disciplina)}}}" + "\n\n")
 
-        for projeto in projetos:
+            for projeto in projetos:
 
-            programas_vinculados = ", ".join([p.nome for p in projeto.programa.all()])
 
-            # Texto do aluno vai escapado para não quebrar (nem injetar comandos no) LaTeX
-            secoes = [
-                ('Autores', projeto.nome_autores),
-                ('Disciplina e Curso', turma.curso),
-                ('Programa PEPICT vinculado', programas_vinculados),
-                ('Objetivos', projeto.objetivos_trabalho),
-                ('Metodologia', projeto.metodologia_projeto),
-                ('Resultados e Produtos', projeto.resultados_projeto),
-                ('Relação com os ODS', projeto.justificativa_ods),
-                ('Reflexão Crítica', projeto.reflexao_projeto),
-                ('Referências', projeto.referencia_projeto),
-            ]
+                programas_vinculados = ", ".join([p.nome for p in projeto.programa.all()])
 
-            partes.append(fr"\newpage" + "\n")
-            partes.append(fr"\section{{{escapa_latex(projeto.titulo_projeto)}}}" + "\n")
+                # Texto do aluno vai escapado para não quebrar (nem injetar comandos no) LaTeX
+                secoes = [
+                    ('Autores', projeto.nome_autores),
+                    ('Disciplina e Curso', turma.curso),
+                    ('Programa PEPICT vinculado', programas_vinculados),
+                    ('Objetivos', projeto.objetivos_trabalho),
+                    ('Metodologia', projeto.metodologia_projeto),
+                    ('Resultados e Produtos', projeto.resultados_projeto),
+                    ('Relação com os ODS', projeto.justificativa_ods),
+                    ('Reflexão Crítica', projeto.reflexao_projeto),
+                    ('Referências', projeto.referencia_projeto),
+                ]
 
-            for rotulo, texto in secoes:
-                partes.append(fr"\noindent" + "\n")
-                partes.append(fr"\textbf{{{rotulo}}}" + "\n" + escapa_latex(texto) + "\n\n")
-                partes.append(fr"\vspace{{0.7cm}}" + "\n")
+                partes.append(fr"\newpage" + "\n")
+                partes.append(fr"\section{{{escapa_latex(projeto.titulo_projeto)}}}" + "\n")
+
+                for rotulo, texto in secoes:
+                    partes.append(fr"\noindent" + "\n")
+                    partes.append(fr"\textbf{{{rotulo}}}" + "\n" + escapa_latex(texto) + "\n\n")
+                    partes.append(fr"\vspace{{0.7cm}}" + "\n")
 
     # Grava tudo de uma vez (o to_tex lê este arquivo)
     with open(caminho_temp_capitulos, "w", encoding="utf-8") as arquivo:
@@ -654,18 +679,25 @@ def gera_revista_view(request, revista_id):
         'organizadores': escapa_latex_linhas(revista.organizadores),
     }
 
+    temporary_directory = tempfile.TemporaryDirectory()
     try:
-        pdf_gerado = to_pdf(dados)
+        gera_capitulos(revista_id, temporary_directory.name)
+        pdf_gerado = to_pdf(dados, temporary_directory.name)
 
         if os.path.exists(pdf_gerado):
-            response = FileResponse(open(pdf_gerado, 'rb'), as_attachment=True)
+            response = TemporaryFileResponse(
+                open(pdf_gerado, 'rb'),
+                temporary_directory,
+                as_attachment=True,
+            )
             response['Content-Disposition'] = f'attachment; filename="resumo_{revista.id}.pdf"'
-
             return response
 
+        temporary_directory.cleanup()
         messages.error(request, "O arquivo PDF não foi encontrado.")
 
     except Exception as e:
+        temporary_directory.cleanup()
         messages.error(request, f"Erro ao gerar o PDF: {str(e)}")
 
  
