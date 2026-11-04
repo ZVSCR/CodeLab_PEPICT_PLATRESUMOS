@@ -1,23 +1,20 @@
+import os
 import re
 import shutil
-import os
 import subprocess
 import tempfile
 from pathlib import Path
 from unittest import skipUnless
 from unittest.mock import patch
 
-from django.test import SimpleTestCase
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
 from . import topdf
 from .models import Usuario, Semestre, Turma, Projeto, Revista, ProjetoRevista, Inscricao, Submissao, ODS
 from .topdf import to_pdf
-from .views import TemporaryFileResponse
-from .views import gera_capitulos
+from .views import TemporaryFileResponse, gera_capitulos
 
-CONTEUDO_REVISTA = os.path.join(os.path.dirname(topdf.__file__), 'arquivos_temp', 'conteudo_revista.txt')
 TEXTO_ESPECIAL = r'50% a_b [x] "q" #1 & $2 ~ ^ {c} \input{/etc/passwd}'
 
 
@@ -57,17 +54,12 @@ class PdfGenerationTests(SimpleTestCase):
 
         self.assertFalse(os.path.exists(temporary_directory.name))
 
-def preserva_conteudo_revista(test):
-    """gera_capitulos escreve no conteudo_revista.txt versionado: restaura no fim do teste."""
-    # Em bytes: o arquivo versionado tem fim de linha CRLF
-    with open(CONTEUDO_REVISTA, 'rb') as arquivo:
-        original = arquivo.read()
 
-    def restaura():
-        with open(CONTEUDO_REVISTA, 'wb') as arquivo:
-            arquivo.write(original)
-
-    test.addCleanup(restaura)
+def pasta_temporaria(test):
+    """Cria uma pasta temporária que é apagada no fim do teste."""
+    pasta = tempfile.TemporaryDirectory()
+    test.addCleanup(pasta.cleanup)
+    return pasta.name
 
 
 def remove_se_existe(*caminhos):
@@ -226,12 +218,15 @@ class PdfResumoCoordenadorTest(TestCase):
         with patch('plataformaResumosAPP.views.to_pdf', return_value=pdf.name) as to_pdf:
             resposta = self.client.get(reverse('pdf_resumo', args=[self.projeto.id]))
         resposta.dados = to_pdf.call_args.args[0] if to_pdf.called else None
+        # Lê o download até o fim para o test client fechar o arquivo (veja _pdf_real)
+        resposta.conteudo = b''.join(resposta.streaming_content) if resposta.streaming else None
         return resposta
 
     def test_coordenador_baixa_resumo_aprovado(self):
         resposta = self._baixar_pdf()
         self.assertEqual(resposta.status_code, 200)
         self.assertIn('attachment', resposta['Content-Disposition'])
+        self.assertEqual(resposta.conteudo, b'%PDF-1.4')
 
     def test_coordenador_nao_baixa_resumo_nao_aprovado(self):
         for status in (0, 1, 3):
@@ -260,8 +255,7 @@ class PdfResumoCoordenadorTest(TestCase):
         )}
         dados.update(document_type='resumo', objetivos=topdf.escapa_latex(TEXTO_ESPECIAL))
 
-        pdf = topdf.to_pdf(dados)
-        self.addCleanup(remove_se_existe, pdf, pdf.replace('.pdf', '.tex'))
+        pdf = topdf.to_pdf(dados, pasta_temporaria(self))
         texto = subprocess.run(['pdftotext', pdf, '-'], capture_output=True, text=True).stdout
         self.assertIn(TEXTO_ESPECIAL, texto)
 
@@ -278,7 +272,6 @@ class CadernoRevistaTest(TestCase):
             codigo_acesso='ABC123', disciplina='Disciplina', curso='Curso',
         )
         self.revista = Revista.objects.create(titulo='Caderno', semestre=semestre)
-        preserva_conteudo_revista(self)
 
     def _projeto(self, titulo, status=2, na_revista=True, **campos):
         aluno = Usuario.objects.create_user(titulo, password='x', tipo_usuario=1)
@@ -295,8 +288,9 @@ class CadernoRevistaTest(TestCase):
         return projeto
 
     def _conteudo(self):
-        gera_capitulos(self.revista.id)
-        with open(CONTEUDO_REVISTA, encoding='utf-8') as arquivo:
+        pasta = pasta_temporaria(self)
+        gera_capitulos(self.revista.id, pasta)
+        with open(os.path.join(pasta, 'conteudo_revista.txt'), encoding='utf-8') as arquivo:
             return arquivo.read()
 
     def test_inclui_so_resumos_marcados(self):
@@ -354,7 +348,6 @@ class CadernoEditavelTest(TestCase):
         self.revista = Revista.objects.create(titulo='Caderno', semestre=semestre)
         self._projeto('Resumo')
         self.client.force_login(self.coordenador)
-        preserva_conteudo_revista(self)
 
     def _projeto(self, titulo, turma=None):
         aluno = Usuario.objects.create_user(f'aluno-{titulo}', password='x', tipo_usuario=1)
@@ -370,12 +363,12 @@ class CadernoEditavelTest(TestCase):
         """Gera o PDF pela view, mas captura o .tex em vez de compilar."""
         capturado = {}
 
-        def falso_to_pdf(dados):
-            caminho = topdf.to_tex(dados)
+        def falso_to_pdf(dados, output_dir):
+            caminho = topdf.to_tex(dados, output_dir)
             with open(caminho, encoding='utf-8') as arquivo:
                 capturado['tex'] = arquivo.read()
-            os.remove(caminho)
-            return caminho  # já removido: a view só mostra a mensagem de erro
+            # PDF que não existe: a view só mostra a mensagem de erro e apaga a pasta
+            return caminho.replace('.tex', '.pdf')
 
         with patch('plataformaResumosAPP.views.to_pdf', side_effect=falso_to_pdf):
             self.client.get(reverse('pdf_revista', args=[self.revista.id]))
@@ -383,21 +376,56 @@ class CadernoEditavelTest(TestCase):
 
     def _pdf_real(self):
         """Gera o PDF da revista com o pdflatex e devolve o texto, página por página."""
-        # A view não apaga o PDF nem o .tex gerados em arquivos_temp: o teste apaga
-        gerados = []
+        resposta = self.client.get(reverse('pdf_revista', args=[self.revista.id]))
+        self.assertEqual(resposta.status_code, 200)
+        conteudo = self._le_download(resposta)
 
-        def to_pdf_registrando(dados):
-            pdf = topdf.to_pdf(dados)
-            gerados.append(pdf)
-            self.addCleanup(remove_se_existe, pdf, pdf.replace('.pdf', '.tex'))
+        # A view apaga a pasta temporária depois do download: o teste salva uma cópia
+        pdf = os.path.join(pasta_temporaria(self), 'caderno.pdf')
+        with open(pdf, 'wb') as arquivo:
+            arquivo.write(conteudo)
+        texto = subprocess.run(['pdftotext', '-layout', pdf, '-'], capture_output=True, text=True).stdout
+        return texto.split('\f')
+
+    @staticmethod
+    def _le_download(resposta):
+        # Lê o download até o fim: assim o test client fecha o arquivo sem fechar o banco.
+        # (resposta.close() dispara o sinal de fim de requisição, que fecha a conexão do
+        # Postgres no meio da transação do teste e quebra os testes seguintes.)
+        return b''.join(resposta.streaming_content)
+
+    def test_download_do_caderno_apaga_a_pasta_temporaria(self):
+        pastas = []
+
+        def falso_to_pdf(dados, output_dir):
+            pastas.append(output_dir)
+            # os capítulos foram gravados na mesma pasta do PDF
+            self.assertTrue(os.path.exists(os.path.join(output_dir, 'conteudo_revista.txt')))
+            pdf = os.path.join(output_dir, 'caderno.pdf')
+            with open(pdf, 'wb') as arquivo:
+                arquivo.write(b'%PDF-1.4')
             return pdf
 
-        with patch('plataformaResumosAPP.views.to_pdf', side_effect=to_pdf_registrando):
+        with patch('plataformaResumosAPP.views.to_pdf', side_effect=falso_to_pdf):
             resposta = self.client.get(reverse('pdf_revista', args=[self.revista.id]))
+
         self.assertEqual(resposta.status_code, 200)
-        resposta.close()
-        texto = subprocess.run(['pdftotext', '-layout', gerados[0], '-'], capture_output=True, text=True).stdout
-        return texto.split('\f')
+        self.assertTrue(os.path.isdir(pastas[0]))  # ainda existe enquanto o download não terminou
+        self.assertEqual(self._le_download(resposta), b'%PDF-1.4')
+        self.assertFalse(os.path.exists(pastas[0]))
+
+    def test_erro_na_geracao_apaga_a_pasta_temporaria(self):
+        pastas = []
+
+        def falha(dados, output_dir):
+            pastas.append(output_dir)
+            raise RuntimeError('pdflatex falhou')
+
+        with patch('plataformaResumosAPP.views.to_pdf', side_effect=falha):
+            resposta = self.client.get(reverse('pdf_revista', args=[self.revista.id]))
+
+        self.assertEqual(resposta.status_code, 302)
+        self.assertFalse(os.path.exists(pastas[0]))
 
     def test_so_coordenador_acessa(self):
         for tipo, nome in ((1, 'a2'), (2, 'p2')):

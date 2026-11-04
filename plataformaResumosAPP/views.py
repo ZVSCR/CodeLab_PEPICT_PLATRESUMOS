@@ -605,50 +605,43 @@ def projetos_do_caderno(revista):
 
 
 def gera_capitulos(revista_id, output_dir):
+    """Grava os capítulos da revista em output_dir/conteudo_revista.txt (lido pelo to_tex)."""
 
     os.makedirs(output_dir, exist_ok=True)
     caminho_temp_capitulos = os.path.join(output_dir, "conteudo_revista.txt")
 
     revista = get_object_or_404(Revista, pk=revista_id)
 
-    turmas = Turma.objects.filter(semestre=revista.semestre)
     partes = []
-    
-    #for turma, projetos in groupby(projetos_do_caderno(revista), key=lambda p: p.turma):
-    with open(caminho_temp_capitulos, "w", encoding="utf-8") as arquivo:
-        for turma in turmas:
 
-            arquivo.write(fr"\chapter{{{turma.disciplina}}}" + "\n\n")
+    for turma, projetos in groupby(projetos_do_caderno(revista), key=lambda p: p.turma):
 
-            projetos = Projeto.objects.filter(turma=turma)
-            
-            partes.append(fr"\chapter{{{escapa_latex(turma.disciplina)}}}" + "\n\n")
+        partes.append(fr"\chapter{{{escapa_latex(turma.disciplina)}}}" + "\n\n")
 
-            for projeto in projetos:
+        for projeto in projetos:
 
+            programas_vinculados = ", ".join([p.nome for p in projeto.programa.all()])
 
-                programas_vinculados = ", ".join([p.nome for p in projeto.programa.all()])
+            # Texto do aluno vai escapado para não quebrar (nem injetar comandos no) LaTeX
+            secoes = [
+                ('Autores', projeto.nome_autores),
+                ('Disciplina e Curso', turma.curso),
+                ('Programa PEPICT vinculado', programas_vinculados),
+                ('Objetivos', projeto.objetivos_trabalho),
+                ('Metodologia', projeto.metodologia_projeto),
+                ('Resultados e Produtos', projeto.resultados_projeto),
+                ('Relação com os ODS', projeto.justificativa_ods),
+                ('Reflexão Crítica', projeto.reflexao_projeto),
+                ('Referências', projeto.referencia_projeto),
+            ]
 
-                # Texto do aluno vai escapado para não quebrar (nem injetar comandos no) LaTeX
-                secoes = [
-                    ('Autores', projeto.nome_autores),
-                    ('Disciplina e Curso', turma.curso),
-                    ('Programa PEPICT vinculado', programas_vinculados),
-                    ('Objetivos', projeto.objetivos_trabalho),
-                    ('Metodologia', projeto.metodologia_projeto),
-                    ('Resultados e Produtos', projeto.resultados_projeto),
-                    ('Relação com os ODS', projeto.justificativa_ods),
-                    ('Reflexão Crítica', projeto.reflexao_projeto),
-                    ('Referências', projeto.referencia_projeto),
-                ]
+            partes.append(fr"\newpage" + "\n")
+            partes.append(fr"\section{{{escapa_latex(projeto.titulo_projeto)}}}" + "\n")
 
-                partes.append(fr"\newpage" + "\n")
-                partes.append(fr"\section{{{escapa_latex(projeto.titulo_projeto)}}}" + "\n")
-
-                for rotulo, texto in secoes:
-                    partes.append(fr"\noindent" + "\n")
-                    partes.append(fr"\textbf{{{rotulo}}}" + "\n" + escapa_latex(texto) + "\n\n")
-                    partes.append(fr"\vspace{{0.7cm}}" + "\n")
+            for rotulo, texto in secoes:
+                partes.append(fr"\noindent" + "\n")
+                partes.append(fr"\textbf{{{rotulo}}}" + "\n" + escapa_latex(texto) + "\n\n")
+                partes.append(fr"\vspace{{0.7cm}}" + "\n")
 
     # Grava tudo de uma vez (o to_tex lê este arquivo)
     with open(caminho_temp_capitulos, "w", encoding="utf-8") as arquivo:
@@ -659,9 +652,6 @@ def gera_revista_view(request, revista_id):
     if request.user.tipo_usuario != 3:
         return HttpResponseForbidden()
 
-    # Executa a escrita sequencial no arquivo txt
-    gera_capitulos(revista_id)
-    
     revista = get_object_or_404(Revista.objects.select_related('semestre__coordenador'), pk=revista_id)
     data_formatada = revista.data_criacao.strftime('%Y')
 

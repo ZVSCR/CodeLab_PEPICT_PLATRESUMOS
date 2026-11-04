@@ -24,30 +24,29 @@ load_dotenv(BASE_DIR / '.env')
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-# Em produção (Fly.io), o valor vem do `fly secrets set SECRET_KEY=...`.
-# Localmente, se a variável de ambiente não existir, cai no valor antigo abaixo.
-SECRET_KEY = os.environ.get(
-    'SECRET_KEY',
-    'django-insecure-(1zo((=+jb=pgh+97i4nvt@9(uobvf%45+l9#3fmj649)nxoik'
-)
+def _lista_env(nome, padrao=''):
+    """Lê uma variável de ambiente com valores separados por vírgula."""
+    return [item.strip() for item in os.environ.get(nome, padrao).split(',') if item.strip()]
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
-ALLOWED_HOSTS = [
-    'plataforma-resumos.fly.dev',
-    '.fly.dev',
-    'localhost',
-    '127.0.0.1',
-]
+# DEBUG fica desligado por padrão: só liga com DEBUG=True no .env (desenvolvimento)
+DEBUG = os.environ.get('DEBUG', 'False').lower() in ('1', 'true', 'yes')
 
-CSRF_TRUSTED_ORIGINS = [
-    'https://plataforma-resumos.fly.dev',
-]
+# Em produção a SECRET_KEY é obrigatória; a chave insegura só vale com DEBUG ligado
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    if not DEBUG:
+        raise RuntimeError('Defina a variável de ambiente SECRET_KEY (ou DEBUG=True em desenvolvimento).')
+    SECRET_KEY = 'django-insecure-chave-apenas-para-desenvolvimento'
 
-# O Fly.io termina o HTTPS na borda e repassa a requisição por HTTP internamente;
-# isso avisa o Django que a conexão original era segura
+# Domínios que podem acessar o app. Ex.: ALLOWED_HOSTS=resumos.unifesp.br,203.0.113.10
+ALLOWED_HOSTS = _lista_env('ALLOWED_HOSTS', 'localhost,127.0.0.1')
+
+# Origens aceitas nos formulários (com https://). Ex.: https://resumos.unifesp.br
+CSRF_TRUSTED_ORIGINS = _lista_env('CSRF_TRUSTED_ORIGINS')
+
+# Quando houver um proxy com HTTPS (nginx, Caddy) na frente do container, ele repassa
+# a requisição por HTTP e avisa no cabeçalho que a conexão original era segura
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
@@ -66,6 +65,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # Serve os arquivos estáticos (CSS, JS) direto pelo gunicorn, sem precisar de nginx
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -98,12 +99,19 @@ AUTH_USER_MODEL = 'plataformaResumosAPP.Usuario'
 
 AUTH_PASSWORD_VALIDATORS = []
 
+# O banco é sempre PostgreSQL, configurado pela DATABASE_URL:
+#  - desenvolvimento: Postgres local do docker-compose.yml
+#  - produção: Neon (com ?sslmode=require)
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if not DATABASE_URL:
+    raise RuntimeError('Defina a variável de ambiente DATABASE_URL (veja o .env.example).')
+
 DATABASES = {
-    'default': dj_database_url.config(
-        # 1. Tenta encontrar a DATABASE_URL do Render.
-        # 2. Se não encontrar (ambiente local), usa o SQLite.
-        default=os.environ.get('DATABASE_URL', 'sqlite:///db.sqlite3'),
-        conn_max_age=600
+    'default': dj_database_url.parse(
+        DATABASE_URL,
+        conn_max_age=600,
+        # Testa a conexão antes de reutilizar: o Neon fecha conexões ociosas
+        conn_health_checks=True,
     )
 }
 
@@ -149,3 +157,13 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 STATIC_ROOT = BASE_DIR / 'static'
+
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        # Gera versões comprimidas (gzip/brotli) dos arquivos no collectstatic
+        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+    },
+}

@@ -19,6 +19,7 @@ babel = "*"
 djangorestframework = "*"
 weasyprint = "*"
 python-dotenv = "*"
+whitenoise = "*"
 
 [dev-packages]
 
