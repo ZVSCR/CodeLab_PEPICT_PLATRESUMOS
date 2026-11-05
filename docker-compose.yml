@@ -38,6 +38,8 @@ services:
     volumes:
       # O código do seu PC aparece dentro do container: editou, o runserver recarrega
       - .:/app
+      # Mantém a pasta static/ gerada no build (o código montado acima esconderia ela)
+      - /app/static
     depends_on:
       db:
         condition: service_healthy
