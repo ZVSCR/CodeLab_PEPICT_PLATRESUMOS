@@ -24,7 +24,6 @@ static/
 plataformaResumosAPP/arquivos_temp/
 
 # Arquivos que não fazem parte do app
-fly.toml
 docker-compose*.yml
 Monografia_TCC_AndreTokumoto.pdf
 CLAUDE.md

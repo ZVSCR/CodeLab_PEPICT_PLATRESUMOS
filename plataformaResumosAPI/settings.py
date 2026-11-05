@@ -21,8 +21,6 @@ from dotenv import load_dotenv
 
 load_dotenv(BASE_DIR / '.env')
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 def _lista_env(nome, padrao=''):
     """Lê uma variável de ambiente com valores separados por vírgula."""
@@ -49,6 +47,13 @@ CSRF_TRUSTED_ORIGINS = _lista_env('CSRF_TRUSTED_ORIGINS')
 # a requisição por HTTP e avisa no cabeçalho que a conexão original era segura
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+# Com HTTPS, os cookies de login e do formulário só trafegam criptografados.
+# Liga sozinho em produção (DEBUG=False); para testar o servidor por HTTP antes de ter
+# o certificado, use HTTPS=False no .env. O redirecionamento de HTTP para HTTPS fica com o proxy.
+HTTPS = os.environ.get('HTTPS', str(not DEBUG)).lower() in ('1', 'true', 'yes')
+SESSION_COOKIE_SECURE = HTTPS
+CSRF_COOKIE_SECURE = HTTPS
+
 
 # Application definition
 
@@ -60,7 +65,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'plataformaResumosAPP',
-    'rest_framework',
 ]
 
 MIDDLEWARE = [
@@ -96,8 +100,6 @@ WSGI_APPLICATION = 'plataformaResumosAPI.wsgi.application'
 
 
 AUTH_USER_MODEL = 'plataformaResumosAPP.Usuario'
-
-AUTH_PASSWORD_VALIDATORS = []
 
 # O banco é sempre PostgreSQL, configurado pela DATABASE_URL:
 #  - desenvolvimento: Postgres local do docker-compose.yml
