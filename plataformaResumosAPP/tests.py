@@ -16,6 +16,61 @@ from .topdf import to_pdf
 from .views import TemporaryFileResponse, gera_capitulos
 
 TEXTO_ESPECIAL = r'50% a_b [x] "q" #1 & $2 ~ ^ {c} \input{/etc/passwd}'
+# Exemplo da issue #32: caracteres que o pdflatex não conhece derrubavam o PDF
+TEXTO_UNICODE = 'temperatura ≥ 30 °C 🙂, CO₂ ≈ 0,04%, α → β, x ≤ 10⁶, Nguyễn'
+
+
+class EscapaUnicodeTest(SimpleTestCase):
+    """Issue #32: Unicode fora do que o pdflatex suporta é trocado ou removido."""
+
+    def test_troca_simbolos_comuns_por_latex(self):
+        self.assertEqual(topdf.escapa_latex('x ≥ 30'), r'x \ensuremath{\geq} 30')
+        self.assertEqual(topdf.escapa_latex('CO₂'), r'CO\textsubscript{2}')
+        self.assertEqual(topdf.escapa_latex('10⁶'), r'10\textsuperscript{6}')
+        self.assertEqual(topdf.escapa_latex('α'), r'\ensuremath{\alpha}')
+
+    def test_mantem_acentos_e_pontuacao_suportados(self):
+        texto = 'Ação, São Paulo — “aspas” … 25 °C, x² ± 1, 5 €'
+        self.assertEqual(topdf.escapa_latex(texto), texto)
+
+    def test_junta_acento_separado_da_letra(self):
+        # "e" + acento combinado (comum em texto colado) vira "é"
+        self.assertEqual(topdf.escapa_latex('cafe\u0301'), 'café')
+
+    def test_simplifica_ou_remove_o_que_nao_tem_equivalente(self):
+        self.assertEqual(topdf.escapa_latex('Nguyễn'), 'Nguyên')
+        self.assertEqual(topdf.escapa_latex('ﬁm'), 'fim')
+        self.assertEqual(topdf.escapa_latex('ok 🙂✅'), 'ok ')
+
+    def test_saida_so_tem_caracteres_que_o_pdflatex_aceita(self):
+        texto = TEXTO_UNICODE + ''.join(chr(c) for c in range(0x80, 0x3000, 7))
+        for c in topdf.escapa_latex(texto):
+            self.assertIn(c, topdf.ACEITOS_PDFLATEX, f'U+{ord(c):04X}')
+
+
+class ToTexTest(SimpleTestCase):
+    """Issue #33: o escape acontece num lugar só, no to_tex."""
+
+    def test_escapa_todos_os_campos_do_resumo(self):
+        dados = {chave: TEXTO_ESPECIAL for chave, _ in topdf.CAMPOS_RESUMO.values()}
+        dados['document_type'] = 'resumo'
+        with tempfile.TemporaryDirectory() as pasta:
+            tex = Path(topdf.to_tex(dados, pasta)).read_text(encoding='utf-8')
+        self.assertEqual(tex.count(topdf.escapa_latex(TEXTO_ESPECIAL)), len(topdf.CAMPOS_RESUMO))
+        self.assertNotIn(r'\input{', tex)
+
+    def test_latex_pronto_entra_sem_escapar(self):
+        dados = {'document_type': 'revista', 'capitulos': topdf.LatexPronto(r'\chapter{X}')}
+        with tempfile.TemporaryDirectory() as pasta:
+            tex = Path(topdf.to_tex(dados, pasta)).read_text(encoding='utf-8')
+            self.assertEqual(len(os.listdir(pasta)), 1)  # só o .tex, sem arquivo intermediário
+        self.assertIn(r'\chapter{X}', tex)
+
+    def test_texto_comum_no_lugar_dos_capitulos_e_escapado(self):
+        dados = {'document_type': 'revista', 'capitulos': r'\input{/etc/passwd}'}
+        with tempfile.TemporaryDirectory() as pasta:
+            tex = Path(topdf.to_tex(dados, pasta)).read_text(encoding='utf-8')
+        self.assertNotIn(r'\input{', tex)
 
 
 class PdfGenerationTests(SimpleTestCase):
@@ -238,9 +293,12 @@ class PdfResumoCoordenadorTest(TestCase):
         self.projeto.objetivos_trabalho = TEXTO_ESPECIAL
         self.projeto.save()
 
+        # A view passa o texto puro; o .tex gerado sai escapado
         dados = self._baixar_pdf().dados
-        self.assertEqual(dados['objetivos'], topdf.escapa_latex(TEXTO_ESPECIAL))
-        self.assertNotIn(r'\input', dados['objetivos'])
+        self.assertEqual(dados['objetivos'], TEXTO_ESPECIAL)
+        tex = Path(topdf.to_tex(dados, pasta_temporaria(self))).read_text(encoding='utf-8')
+        self.assertIn(topdf.escapa_latex(TEXTO_ESPECIAL), tex)
+        self.assertNotIn(r'\input{', tex)
 
     def test_falha_sem_referer_volta_ao_painel_do_coordenador(self):
         with patch('plataformaResumosAPP.views.to_pdf', side_effect=RuntimeError('pdflatex falhou')):
@@ -253,11 +311,27 @@ class PdfResumoCoordenadorTest(TestCase):
             'titulo_resumo', 'autores', 'disciplina', 'pepict', 'metodologia',
             'resultados', 'ods', 'reflexao', 'referencias',
         )}
-        dados.update(document_type='resumo', objetivos=topdf.escapa_latex(TEXTO_ESPECIAL))
+        dados.update(document_type='resumo', objetivos=TEXTO_ESPECIAL)
 
         pdf = topdf.to_pdf(dados, pasta_temporaria(self))
         texto = subprocess.run(['pdftotext', pdf, '-'], capture_output=True, text=True).stdout
         self.assertIn(TEXTO_ESPECIAL, texto)
+
+    @skipUnless(shutil.which('pdflatex') and shutil.which('pdftotext'), 'precisa do pdflatex e do pdftotext')
+    def test_pdf_real_com_unicode_fora_do_padrao(self):
+        # Issue #32: antes, o pdflatex falhava com "Unicode character ≥ not set up"
+        self.projeto.titulo_projeto = 'Emissões de CO₂ ≥ 10⁶ t'
+        self.projeto.resultados_projeto = TEXTO_UNICODE
+        self.projeto.save()
+
+        resposta = self.client.get(reverse('pdf_resumo', args=[self.projeto.id]))
+        self.assertEqual(resposta.status_code, 200)
+        pdf = os.path.join(pasta_temporaria(self), 'resumo.pdf')
+        Path(pdf).write_bytes(b''.join(resposta.streaming_content))
+        texto = subprocess.run(['pdftotext', pdf, '-'], capture_output=True, text=True).stdout
+        self.assertIn('temperatura', texto)
+        self.assertIn('30 °C', texto)
+        self.assertIn('Nguyên', texto)
 
 
 class CadernoRevistaTest(TestCase):
@@ -288,10 +362,7 @@ class CadernoRevistaTest(TestCase):
         return projeto
 
     def _conteudo(self):
-        pasta = pasta_temporaria(self)
-        gera_capitulos(self.revista.id, pasta)
-        with open(os.path.join(pasta, 'conteudo_revista.txt'), encoding='utf-8') as arquivo:
-            return arquivo.read()
+        return gera_capitulos(self.revista)
 
     def test_inclui_so_resumos_marcados(self):
         self._projeto('incluido')
@@ -399,8 +470,10 @@ class CadernoEditavelTest(TestCase):
 
         def falso_to_pdf(dados, output_dir):
             pastas.append(output_dir)
-            # os capítulos foram gravados na mesma pasta do PDF
-            self.assertTrue(os.path.exists(os.path.join(output_dir, 'conteudo_revista.txt')))
+            # Issue #33: os capítulos vêm em dados, sem arquivo intermediário na pasta
+            self.assertIsInstance(dados['capitulos'], topdf.LatexPronto)
+            self.assertIn(r'\section{Resumo}', dados['capitulos'])
+            self.assertEqual(os.listdir(output_dir), [])
             pdf = os.path.join(output_dir, 'caderno.pdf')
             with open(pdf, 'wb') as arquivo:
                 arquivo.write(b'%PDF-1.4')
@@ -494,6 +567,19 @@ class CadernoEditavelTest(TestCase):
         self.assertIn('* Beltrana', texto)
         # "Introdução" aparece no sumário e depois no capítulo
         self.assertEqual(texto.split('Sumário', 1)[1].count('Introdução'), 2)
+
+    @skipUnless(shutil.which('pdflatex') and shutil.which('pdftotext'), 'precisa do pdflatex e do pdftotext')
+    def test_pdf_real_com_unicode_fora_do_padrao(self):
+        # Issue #32: um resumo com esses caracteres derrubava o caderno inteiro.
+        # O título também vai para o sumário, que é reprocessado em cada passada do pdflatex.
+        projeto = self._projeto('Emissões de CO₂ ≥ 10⁶ t')
+        projeto.resultados_projeto = TEXTO_UNICODE
+        projeto.save()
+
+        texto = '\n'.join(self._pdf_real())
+        self.assertIn('Sumário', texto)
+        self.assertIn('Emissões de CO', texto)
+        self.assertIn('30 °C', texto)
 
     @skipUnless(shutil.which('pdflatex') and shutil.which('pdftotext'), 'precisa do pdflatex e do pdftotext')
     def test_sumario_longo_tem_numeros_de_pagina_certos(self):

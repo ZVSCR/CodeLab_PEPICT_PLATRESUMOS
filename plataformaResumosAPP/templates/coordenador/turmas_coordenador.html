@@ -36,7 +36,7 @@
                     <div class="d-flex flex-wrap gap-2">
                         <a href="{% url 'caderno' revista.id %}" class="btn btn-light border btn-sm px-3">Editar Caderno</a>
                         {% if semestre.num_projetos_revista > 0 %}
-                            <a href="{% url 'pdf_revista' revista.id %}" class="btn btn-dark btn-sm px-3">Gerar PDF desta Revista</a>
+                            <a href="{% url 'pdf_revista' revista.id %}" class="btn btn-dark btn-sm px-3">Baixar PDF do Caderno</a>
                         {% endif %}
                     </div>
                 {% endif %}
