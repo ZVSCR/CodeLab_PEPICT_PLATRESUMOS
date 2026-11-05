@@ -3,7 +3,7 @@ import random
 import string
 import tempfile
 from itertools import groupby
-from .topdf import to_pdf, escapa_latex, escapa_latex_linhas, escapa_latex_paragrafos
+from .topdf import LatexPronto, to_pdf, escapa_latex
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from .forms import LoginForm, UsuarioCreationForm, CriacaoTurma, InscricaoEmTurma, ProjetoForm,BuscaUsuarioForm, RevistaForm
@@ -550,19 +550,19 @@ def pdf_resumo_view(request, projeto_id):
         return HttpResponseForbidden()
 
 
-    # Texto do aluno vai escapado para não quebrar (nem injetar comandos no) LaTeX
+    # Texto puro: o to_tex escapa tudo para o LaTeX
     dados = {
         'document_type': 'resumo',
-        'titulo_resumo': escapa_latex(projeto.titulo_projeto),
-        'autores': escapa_latex(projeto.nome_autores),
-        'disciplina': escapa_latex(projeto.turma.disciplina),
-        'pepict': escapa_latex(', '.join(p.nome for p in projeto.programa.all())),
-        'objetivos': escapa_latex(projeto.objetivos_trabalho),
-        'metodologia': escapa_latex(projeto.metodologia_projeto),
-        'resultados': escapa_latex(projeto.resultados_projeto),
-        'ods': escapa_latex(', '.join(str(o) for o in projeto.ods.all())),
-        'reflexao': escapa_latex(projeto.reflexao_projeto),
-        'referencias': escapa_latex(projeto.referencia_projeto),
+        'titulo_resumo': projeto.titulo_projeto,
+        'autores': projeto.nome_autores,
+        'disciplina': projeto.turma.disciplina,
+        'pepict': ', '.join(p.nome for p in projeto.programa.all()),
+        'objetivos': projeto.objetivos_trabalho,
+        'metodologia': projeto.metodologia_projeto,
+        'resultados': projeto.resultados_projeto,
+        'ods': ', '.join(str(o) for o in projeto.ods.all()),
+        'reflexao': projeto.reflexao_projeto,
+        'referencias': projeto.referencia_projeto,
     }
 
     temporary_directory = tempfile.TemporaryDirectory()
@@ -604,14 +604,12 @@ def projetos_do_caderno(revista):
     )
 
 
-def gera_capitulos(revista_id, output_dir):
-    """Grava os capítulos da revista em output_dir/conteudo_revista.txt (lido pelo to_tex)."""
-
-    os.makedirs(output_dir, exist_ok=True)
-    caminho_temp_capitulos = os.path.join(output_dir, "conteudo_revista.txt")
-
-    revista = get_object_or_404(Revista, pk=revista_id)
-
+def gera_capitulos(revista):
+    """
+    Monta o LaTeX dos capítulos do caderno: um capítulo por turma, uma seção por resumo.
+    O texto dos alunos é escapado aqui, porque entra no meio de comandos LaTeX montados
+    pelo sistema; o resultado vai pronto para o to_tex (LatexPronto).
+    """
     partes = []
 
     for turma, projetos in groupby(projetos_do_caderno(revista), key=lambda p: p.turma):
@@ -643,9 +641,7 @@ def gera_capitulos(revista_id, output_dir):
                 partes.append(fr"\textbf{{{rotulo}}}" + "\n" + escapa_latex(texto) + "\n\n")
                 partes.append(fr"\vspace{{0.7cm}}" + "\n")
 
-    # Grava tudo de uma vez (o to_tex lê este arquivo)
-    with open(caminho_temp_capitulos, "w", encoding="utf-8") as arquivo:
-        arquivo.write("".join(partes))
+    return LatexPronto("".join(partes))
 
 @login_required
 def gera_revista_view(request, revista_id):
@@ -655,23 +651,24 @@ def gera_revista_view(request, revista_id):
     revista = get_object_or_404(Revista.objects.select_related('semestre__coordenador'), pk=revista_id)
     data_formatada = revista.data_criacao.strftime('%Y')
 
-    # Conteúdo salvo na tela "Caderno de Resumos"; em branco usa o padrão
+    # Conteúdo salvo na tela "Caderno de Resumos"; em branco usa o padrão.
+    # Texto puro: o to_tex escapa cada campo do jeito certo (linhas, parágrafos...)
     dados = {
         'document_type': 'revista',
-        'titulo_revista': escapa_latex(revista.titulo),
+        'titulo_revista': revista.titulo,
         'data': data_formatada,
-        'introducao': escapa_latex_paragrafos(revista.introducao or revista.introducao_padrao()),
-        'coordenador_geral': escapa_latex_linhas(revista.coordenador_geral or revista.coordenador_geral_padrao()),
-        'coordenador_editorial': escapa_latex_linhas(revista.coordenador_editorial),
-        'comissao': escapa_latex_linhas(revista.comissao),
-        'revisao': escapa_latex_linhas(revista.revisao),
-        'diagramacao': escapa_latex_linhas(revista.diagramacao),
-        'organizadores': escapa_latex_linhas(revista.organizadores),
+        'introducao': revista.introducao or revista.introducao_padrao(),
+        'coordenador_geral': revista.coordenador_geral or revista.coordenador_geral_padrao(),
+        'coordenador_editorial': revista.coordenador_editorial,
+        'comissao': revista.comissao,
+        'revisao': revista.revisao,
+        'diagramacao': revista.diagramacao,
+        'organizadores': revista.organizadores,
+        'capitulos': gera_capitulos(revista),
     }
 
     temporary_directory = tempfile.TemporaryDirectory()
     try:
-        gera_capitulos(revista_id, temporary_directory.name)
         pdf_gerado = to_pdf(dados, temporary_directory.name)
 
         if os.path.exists(pdf_gerado):
@@ -680,7 +677,7 @@ def gera_revista_view(request, revista_id):
                 temporary_directory,
                 as_attachment=True,
             )
-            response['Content-Disposition'] = f'attachment; filename="resumo_{revista.id}.pdf"'
+            response['Content-Disposition'] = f'attachment; filename="caderno_{revista.id}.pdf"'
             return response
 
         temporary_directory.cleanup()

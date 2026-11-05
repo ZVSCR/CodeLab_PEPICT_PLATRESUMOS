@@ -1,6 +1,7 @@
 import subprocess
 import os
 import re
+import unicodedata
 import uuid
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -28,9 +29,89 @@ LATEX_ESPECIAIS = {
 }
 
 
+# --- Unicode (issue #32) ---
+# O pdflatex (inputenc utf8 + fontenc T1) só conhece parte do Unicode: um único caractere
+# desconhecido (ex.: ≥, α, CO₂, emoji) derruba a compilação do PDF inteiro.
+# Faixas que o pdflatex aceita com os nossos templates (conferidas compilando cada uma):
+# Latin-1, Latin Extended-A (menos alguns), pontuação tipográfica, € ™ № e setas simples.
+_FAIXAS_ACEITAS = (
+    (0x20, 0x7E), (0xA0, 0xAC), (0xAE, 0x125), (0x128, 0x137), (0x139, 0x13E),
+    (0x141, 0x148), (0x14A, 0x165), (0x168, 0x17E), (0x2010, 0x2016), (0x2018, 0x201A),
+    (0x201C, 0x201E), (0x2020, 0x2022), (0x2026, 0x2026), (0x2030, 0x2030),
+    (0x2039, 0x203A), (0x20AC, 0x20AC), (0x2116, 0x2116), (0x2122, 0x2122), (0x2190, 0x2193),
+)
+ACEITOS_PDFLATEX = frozenset(
+    chr(c) for inicio, fim in _FAIXAS_ACEITAS for c in range(inicio, fim + 1)
+) | {'\n', '\r', '\t'}
+
+_MATEMATICA = {
+    '≥': r'\geq', '≤': r'\leq', '≠': r'\neq', '≈': r'\approx', '≡': r'\equiv',
+    '∞': r'\infty', '√': r'\surd', '∑': r'\sum', '∏': r'\prod', '∂': r'\partial',
+    '∆': r'\Delta', '∇': r'\nabla', '∈': r'\in', '∉': r'\notin', '∩': r'\cap',
+    '∪': r'\cup', '⊂': r'\subset', '⊃': r'\supset', '∀': r'\forall', '∃': r'\exists',
+    '∝': r'\propto', '∠': r'\angle', '−': '-', '∓': r'\mp', '∗': '*', '∘': r'\circ',
+    '⇒': r'\Rightarrow', '⇐': r'\Leftarrow', '⇔': r'\Leftrightarrow', '↔': r'\leftrightarrow',
+    '′': "'", '″': "''",
+}
+_GREGO = dict(zip(
+    'αβγδεζηθικλμνξπρςστυφχψω',
+    'alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi pi '
+    'rho varsigma sigma tau upsilon phi chi psi omega'.split(),
+))
+_GREGO.update({'Γ': 'Gamma', 'Δ': 'Delta', 'Θ': 'Theta', 'Λ': 'Lambda', 'Ξ': 'Xi', 'Π': 'Pi',
+               'Σ': 'Sigma', 'Υ': 'Upsilon', 'Φ': 'Phi', 'Ψ': 'Psi', 'Ω': 'Omega'})
+# Maiúsculas gregas iguais às latinas e o ômicron saem como letra comum
+_GREGO_COMO_LATINO = dict(zip('ΑΒΕΖΗΙΚΜΝΟΡΤΧο', 'ABEZHIKMNOPTXo'))
+_SOBRESCRITO = dict(zip('⁰⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿⁱ', '0456789+-=()ni'))
+_SUBSCRITO = dict(zip('₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎', '0123456789+-=()'))
+# Espaços especiais viram espaço comum; caracteres invisíveis somem
+_ESPACOS = set('\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\u2028\u2029')
+_INVISIVEIS = set('\u00ad\u200b\u200c\u200d\u2060\ufeff')
+
+UNICODE_LATEX = {}
+UNICODE_LATEX.update({c: r'\ensuremath{%s}' % cmd for c, cmd in _MATEMATICA.items()})
+UNICODE_LATEX.update({c: r'\ensuremath{\%s}' % nome for c, nome in _GREGO.items()})
+UNICODE_LATEX.update(_GREGO_COMO_LATINO)
+UNICODE_LATEX.update({c: r'\textsuperscript{%s}' % v for c, v in _SOBRESCRITO.items()})
+UNICODE_LATEX.update({c: r'\textsubscript{%s}' % v for c, v in _SUBSCRITO.items()})
+UNICODE_LATEX.update({c: ' ' for c in _ESPACOS})
+UNICODE_LATEX.update({c: '' for c in _INVISIVEIS})
+
+
+def _escapa_caractere(c):
+    if c in LATEX_ESPECIAIS:
+        return LATEX_ESPECIAIS[c]
+    if c in UNICODE_LATEX:
+        return UNICODE_LATEX[c]
+    if c in ACEITOS_PDFLATEX:
+        return c
+    # Letra com acentos demais (ex.: ễ, do vietnamita): tira um acento por vez até
+    # sobrar uma letra que o pdflatex conhece (ễ -> ê)
+    decomposto = unicodedata.normalize('NFD', c)
+    while len(decomposto) > 1 and unicodedata.combining(decomposto[-1]):
+        decomposto = decomposto[:-1]
+        reduzido = unicodedata.normalize('NFC', decomposto)
+        if reduzido in ACEITOS_PDFLATEX:
+            return reduzido
+    # Tenta a forma "simples" do caractere (ﬁ -> fi, ① -> 1, ệ -> e) e tira os acentos
+    # que o pdflatex não conhece. O que sobrar (emoji, outros alfabetos) é removido:
+    # perder um símbolo é melhor do que o PDF não sair.
+    simples = unicodedata.normalize('NFKD', c)
+    if simples != c:
+        return ''.join(
+            _escapa_caractere(parte) for parte in simples if not unicodedata.combining(parte)
+        )
+    return ''
+
+
 def escapa_latex(texto):
-    """Escapa os caracteres especiais do LaTeX para o texto sair literal no PDF."""
-    return ''.join(LATEX_ESPECIAIS.get(c, c) for c in str(texto or ''))
+    """
+    Prepara o texto do usuário para o LaTeX: escapa os caracteres especiais (para sair
+    literal e não virar comando) e troca ou remove o Unicode que o pdflatex não suporta.
+    """
+    # NFC junta letra + acento separado (comum em texto colado do Mac/PDF) num caractere só
+    texto = unicodedata.normalize('NFC', str(texto or ''))
+    return ''.join(_escapa_caractere(c) for c in texto)
 
 
 def _linhas(texto):
@@ -45,6 +126,55 @@ def escapa_latex_linhas(texto):
 def escapa_latex_paragrafos(texto):
     """Texto livre (introdução): cada linha preenchida vira um parágrafo."""
     return '\n\n'.join(escapa_latex(linha) for linha in _linhas(texto))
+
+
+class LatexPronto(str):
+    """
+    Texto que já é LaTeX montado pelo sistema (ex.: os capítulos do caderno).
+    O to_tex insere como está, sem escapar. Texto digitado pelo usuário nunca deve usar isto.
+    """
+
+
+def _formata(valor, formatador=escapa_latex):
+    """Escapa o valor para o template, a não ser que ele já seja LaTeX pronto."""
+    if isinstance(valor, LatexPronto):
+        return str(valor)
+    return formatador(valor)
+
+
+# Placeholder do template -> (chave em dados, como formatar o texto)
+CAMPOS_RESUMO = {
+    '_TITULO_RESUMO_':   ('titulo_resumo', escapa_latex),
+    '_AUTORES_':         ('autores', escapa_latex),
+    '_DISCIPLINA_':      ('disciplina', escapa_latex),
+    '_PROGRAMA_PEPICT_': ('pepict', escapa_latex),
+    '_OBJETIVOS_':       ('objetivos', escapa_latex),
+    '_METODOLOGIA_':     ('metodologia', escapa_latex),
+    '_RESULTADOS_':      ('resultados', escapa_latex),
+    '_ODS_':             ('ods', escapa_latex),
+    '_REFLEXAO_':        ('reflexao', escapa_latex),
+    '_REFERENCIAS_':     ('referencias', escapa_latex),
+}
+
+CAMPOS_REVISTA = {
+    'NOME_DA_REVISTA': ('titulo_revista', escapa_latex),
+    'ANO_PUBLICACAO':  ('data', escapa_latex),
+    # Expediente: um nome por linha; o que estiver em branco sai vazio
+    'NOME_COORDENADOR_GERAL_PEPICT': ('coordenador_geral', escapa_latex_linhas),
+    'NOME_COORDENADOR_EDITORIAL':    ('coordenador_editorial', escapa_latex_linhas),
+    'NOME_COMISSAO':                 ('comissao', escapa_latex_linhas),
+    'NOME_REVISAO':                  ('revisao', escapa_latex_linhas),
+    'NOME_DIAGRAMACAO':              ('diagramacao', escapa_latex_linhas),
+    'ORGANIZADORES':                 ('organizadores', escapa_latex_linhas),
+    '_INTRODUCAO_REVISTA_':          ('introducao', escapa_latex_paragrafos),
+    # Montado pelo sistema (gera_capitulos devolve LatexPronto)
+    '_CONTEUDO_REVISTA_':            ('capitulos', escapa_latex),
+}
+
+TEMPLATES = {
+    'resumo': ('resumo.tex', CAMPOS_RESUMO),
+    'revista': ('revista.tex', CAMPOS_REVISTA),
+}
 
 
 def _open_template(template_path):
@@ -70,62 +200,25 @@ def _salva_arquivo(output_path, conteudo):
 
 def to_tex(dados, output_dir):
     """
-    Gera o arquivo .tex preenchido com os dados fornecidos.
-    Retorna o caminho do arquivo .tex gerado.
+    Gera o arquivo .tex preenchido com os dados fornecidos e retorna o caminho dele.
+
+    Os valores de dados são o texto puro, como está no banco: o escape para o LaTeX
+    acontece só aqui, para todo campo (exceto o que vier como LatexPronto).
     """
     document_type = dados.get('document_type')
-
-    os.makedirs(output_dir, exist_ok=True)
-
-    output_path = os.path.join(output_dir, f"{uuid.uuid4().hex}.tex")
-
-    if document_type == 'resumo':
-        template_path = os.path.join(BASE_DIR, 'arquivosTEX', 'resumo.tex')
-
-        
-        doc_gerado = _preenche(_open_template(template_path), {
-            '_TITULO_RESUMO_':   dados.get('titulo_resumo', ''),
-            '_AUTORES_':         dados.get('autores', ''),
-            '_DISCIPLINA_':      dados.get('disciplina', ''),
-            '_PROGRAMA_PEPICT_': dados.get('pepict', ''),
-            '_OBJETIVOS_':       dados.get('objetivos', ''),
-            '_METODOLOGIA_':     dados.get('metodologia', ''),
-            '_RESULTADOS_':      dados.get('resultados', ''),
-            '_ODS_':             dados.get('ods', ''),
-            '_REFLEXAO_':        dados.get('reflexao', ''),
-            '_REFERENCIAS_':     dados.get('referencias', ''),
-        })
-
-        _salva_arquivo(output_path, doc_gerado)
-
-    elif document_type == 'revista':
-
-        template_path = os.path.join(BASE_DIR, 'arquivosTEX', 'revista.tex')
-        caminho_temp_capitulos = os.path.join(output_dir, 'conteudo_revista.txt')
-
-        # pega conteudo dos capitulos
-        with open(caminho_temp_capitulos, "r", encoding="utf-8") as arquivo:
-            capitulos = arquivo.read()
-
-        doc_gerado = _preenche(_open_template(template_path), {
-            'NOME_DA_REVISTA': dados.get('titulo_revista', 'titulo da revista'),
-            'ANO_PUBLICACAO':  str(dados.get('data', 'DATA')), # Forçado para string caso venha objeto datetime
-            # Expediente: o que estiver em branco sai vazio (placeholder com "_" faz o pdflatex falhar)
-            'NOME_COORDENADOR_GERAL_PEPICT': dados.get('coordenador_geral', ''),
-            'NOME_COORDENADOR_EDITORIAL':    dados.get('coordenador_editorial', ''),
-            'NOME_COMISSAO':                 dados.get('comissao', ''),
-            'NOME_REVISAO':                  dados.get('revisao', ''),
-            'NOME_DIAGRAMACAO':              dados.get('diagramacao', ''),
-            'ORGANIZADORES':                 dados.get('organizadores', ''),
-            '_INTRODUCAO_REVISTA_':          dados.get('introducao', ''),
-            '_CONTEUDO_REVISTA_':            capitulos,
-        })
-
-        _salva_arquivo(output_path, doc_gerado)
-        
-    else:
+    if document_type not in TEMPLATES:
         raise ValueError(f"Tipo de documento desconhecido: {document_type}")
 
+    nome_template, campos = TEMPLATES[document_type]
+    template = _open_template(os.path.join(BASE_DIR, 'arquivosTEX', nome_template))
+    valores = {
+        placeholder: _formata(dados.get(chave, ''), formatador)
+        for placeholder, (chave, formatador) in campos.items()
+    }
+
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, f"{uuid.uuid4().hex}.tex")
+    _salva_arquivo(output_path, _preenche(template, valores))
     return output_path
 
 
