@@ -1,0 +1,23 @@
+# Produção (VPS): sobe só o app. O banco fica no Neon.
+# Uso no servidor:
+#   docker compose -f docker-compose.prod.yml up -d --build
+services:
+  web:
+    build: .
+    image: plataforma-resumos:latest
+    container_name: plataforma-resumos-web
+    restart: unless-stopped
+    # Variáveis de produção (DATABASE_URL do Neon, SECRET_KEY, ALLOWED_HOSTS...)
+    env_file: .env
+    environment:
+      PYTHONUNBUFFERED: "1"
+    ports:
+      # Só o próprio servidor acessa a porta 8000; o acesso externo passa pelo proxy com HTTPS.
+      # Para testar sem proxy, troque por "8000:8000".
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s

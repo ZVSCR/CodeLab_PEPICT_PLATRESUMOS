@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% comment %}
+   base_app.html = molde de TODAS as telas pós-login.
+   Ele herda o esqueleto do base.html e preenche o header e o footer.
+
+   Numa página pós-login você escreve só isto:
+
+       extends 'base_app.html'
+       block nome_pagina -> Painel do Aluno
+       block content -> ...conteúdo específico da tela...
+{% endcomment %}
+
+{% block header %}
+<header class="app-header">
+  <!-- 3 colunas: marca à esquerda | logo da UNIFESP no meio | página + usuário à direita -->
+  <div class="app-header__inner">
+
+    <!-- MARCA DO SISTEMA -->
+    <div class="app-header__marca">
+      <span class="app-header__icone" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+      </span>
+      <span class="app-header__marca-texto">
+        <span class="app-header__nome">Síntese</span>
+        <span class="app-header__desc">Resumos acadêmicos</span>
+      </span>
+    </div>
+
+    <!-- LOGO DA UNIFESP (centralizado) -->
+    <div class="app-header__centro">
+      <img src="{% static 'plataformaResumosAPP/img/logo-unifesp.png' %}"
+           alt="UNIFESP — Universidade Federal de São Paulo" class="app-header__logo">
+    </div>
+
+    <!-- NOME DA PÁGINA + USUÁRIO LOGADO -->
+    <div class="app-header__direita">
+      <!-- cada tela define o nome no bloco nome_pagina -->
+      <span class="app-header__page">{% block nome_pagina %}{% endblock %}</span>
+      <span class="app-header__divisor" aria-hidden="true"></span>
+
+      <!-- "user" vem "de graça" do Django em toda página -->
+      <div class="app-header__user">
+        <span class="app-header__avatar" aria-hidden="true">{{ user.first_name|default:user.username|first|upper }}</span>
+        <span class="app-header__user-texto">
+          <span class="app-header__username">{{ user.first_name|default:user.username }}</span>
+          <span class="app-header__papel">
+            {{ user.get_tipo_usuario_display }} ·
+            <a href="{% url 'logout' %}" class="app-header__logout">Sair</a>
+          </span>
+        </span>
+      </div>
+    </div>
+
+  </div>
+</header>
+{% endblock %}
+
+{% block footer %}
+<footer class="app-footer">
+  <div class="app-footer__inner">
+    <a href="{% url 'ajuda' %}" class="app-footer__link">Central de ajuda</a>
+    <span class="app-footer__sep">·</span>
+    <a href="{% url 'privacidade' %}" class="app-footer__link">Privacidade</a>
+  </div>
+</footer>
+{% endblock %}

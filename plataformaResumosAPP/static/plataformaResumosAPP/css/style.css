@@ -1,0 +1,1296 @@
+/* Custom overrides on top of Bootstrap. Add rules here only when Bootstrap
+   doesn't cover what you need. */
+
+
+:root {
+  --cor-header: #009951;               /* cor do header (só ele fica verde) */
+  --cor-header-forte: #111111;         /* textos em destaque sobre o verde */
+  --cor-header-suave: #ffffff;         /* textos secundários sobre o verde */
+  --cor-institucional: #ffffff;        /* cor do footer */
+  --cor-institucional-texto: #000000;  /* cor do texto do footer */
+}
+
+body {
+  background-color: #f5f7fa;   /* fundo da página inteira */
+}
+
+/* BOTÃO "VOLTAR" (templates/_voltar.html) ------------------------------
+   Um só estilo, sempre no topo da página, antes do título.
+   A base é o btn btn-light border do Bootstrap; aqui só a seta e o espaço. */
+.btn-voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+  background-color: #ffffff;
+}
+.btn-voltar:hover {
+  background-color: #e9ecef;
+}
+
+/* HEADER (cabeçalho das telas pós-login) ------------------------------*/
+.app-header {
+  background-color: var(--cor-header);
+  color: var(--cor-header-suave);
+}
+
+/* Grade de 3 colunas: as laterais dividem o espaço igualmente,
+   então o logo do meio fica centralizado de verdade */
+.app-header__inner {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0.6rem 1rem;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Esquerda: ícone + nome do sistema */
+.app-header__marca {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+}
+.app-header__icone {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background-color: #212529;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.app-header__marca-texto,
+.app-header__user-texto {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+}
+.app-header__nome,
+.app-header__username {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--cor-header-forte);
+}
+.app-header__desc,
+.app-header__papel {
+  font-size: 0.82rem;
+  color: var(--cor-header-suave);
+}
+
+/* Meio: logo da UNIFESP */
+.app-header__centro {
+  display: flex;
+  justify-content: center;
+}
+.app-header__logo {
+  height: 52px;
+  width: auto;
+  display: block;
+}
+
+/* Direita: nome da página | divisor | avatar + usuário */
+.app-header__direita {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  min-width: 0;
+}
+.app-header__page {
+  font-size: 0.9rem;
+  color: var(--cor-header-suave);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;   /* nomes longos (ex.: título de projeto) viram "…" */
+  max-width: 220px;
+}
+.app-header__divisor {
+  width: 1px;
+  height: 28px;
+  background-color: rgba(255, 255, 255, 0.6);
+  flex-shrink: 0;
+}
+.app-header__user {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.app-header__avatar {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #212529;
+  color: #ffffff;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.app-header__logout {
+  color: var(--cor-header-suave);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.app-header__logout:hover {
+  color: var(--cor-header-forte);
+}
+.app-header a:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+/* Tablet: some o nome da página para não apertar o logo */
+@media (max-width: 991.98px) {
+  .app-header__page,
+  .app-header__divisor {
+    display: none;
+  }
+}
+
+/* Celular: fica só o ícone na esquerda e o logo menor */
+@media (max-width: 575.98px) {
+  .app-header__inner {
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+  }
+  .app-header__marca-texto {
+    display: none;
+  }
+  .app-header__logo {
+    height: 40px;
+  }
+  .app-header__username {
+    font-size: 0.85rem;
+  }
+}
+
+/* FOOTER (faixa branca; o header tem cor própria)*/
+.app-footer {
+  background-color: var(--cor-institucional);
+  color: var(--cor-institucional-texto);
+}
+
+.app-footer__inner {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.app-footer__link {
+  color: var(--cor-institucional-texto);
+  text-decoration: none;
+}
+.app-footer__link:hover {
+  color: var(--cor-institucional-texto);
+  text-decoration: underline;
+}
+
+.app-footer__sep {
+  opacity: 0.6;
+}
+
+
+/*TELAS DE ENTRADA (login e cadastro) — usadas pelo base_auth.html
+  Troque as duas cores do degradê aqui para mudar o painel verde.*/
+:root {
+  --auth-verde-escuro: #0b3d2e;   /* topo do degradê */
+  --auth-verde-claro: #6fcf97;    /* base do degradê */
+  --auth-verde-botao: #146c43;    /* botões e links das telas de entrada */
+}
+
+/* Metade esquerda: degradê de cima (escuro) para baixo (claro) */
+.auth-painel {
+  background: linear-gradient(180deg, var(--auth-verde-escuro) 0%, var(--auth-verde-claro) 100%);
+}
+
+/* Metade direita: fundo branco */
+.auth-lado {
+  background-color: #ffffff;
+}
+
+/* Box cinza do formulário. max-width evita que estique em telas grandes */
+.auth-form {
+  width: 100%;
+  max-width: 460px;
+  background-color: #f1f3f5;          /* cinza claro do box */
+  border: 1px solid #e3e6ea;          /* borda sutil pra marcar o contorno */
+  border-radius: 12px;                /* cantos arredondados */
+  padding: 2.5rem 2rem;               /* respiro interno */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);  /* sombra leve, "descola" do fundo */
+}
+
+/* No celular o box fica com menos respiro interno */
+@media (max-width: 576px) {
+  .auth-form {
+    padding: 1.75rem 1.25rem;
+  }
+}
+
+.auth-titulo {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.auth-subtitulo {
+  color: #6c757d;
+  margin-bottom: 1.75rem;
+}
+
+.auth-form label {
+  font-weight: 500;
+  margin-bottom: 0.35rem;
+}
+
+.auth-form .form-control:focus {
+  border-color: var(--auth-verde-botao);
+  box-shadow: 0 0 0 0.2rem rgba(20, 108, 67, 0.2);
+}
+
+.auth-erro {
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+/* Botão principal (Entrar / Cadastrar) */
+.auth-botao {
+  background-color: var(--auth-verde-botao);
+  border-color: var(--auth-verde-botao);
+  color: #ffffff;
+  font-weight: 600;
+  padding: 0.6rem;
+}
+.auth-botao:hover,
+.auth-botao:focus {
+  background-color: var(--auth-verde-escuro);
+  border-color: var(--auth-verde-escuro);
+  color: #ffffff;
+}
+
+/* Botões do topo (Entrar | Cadastro): contorno por padrão,
+   preenchido quando é a página atual */
+.auth-aba {
+  border: 1px solid var(--auth-verde-botao);
+  color: var(--auth-verde-botao);
+  background-color: transparent;
+  min-width: 100px;
+}
+.auth-aba:hover {
+  background-color: rgba(20, 108, 67, 0.08);
+  color: var(--auth-verde-botao);
+}
+.auth-aba--ativa,
+.auth-aba--ativa:hover {
+  background-color: var(--auth-verde-botao);
+  color: #ffffff;
+}
+
+.auth-rodape a {
+  color: var(--auth-verde-botao);
+  font-weight: 600;
+}
+
+
+/* ======================================================================
+   PAINEL DO ALUNO — saudação, estatísticas, inscrições e status
+   ====================================================================== */
+
+/* (A) Saudação + ação primária -----------------------------------------*/
+.painel-aluno__saudacao {
+  margin-bottom: 2rem;
+}
+.painel-aluno__saudacao-titulo {
+  /* fluido: encolhe no celular, cresce até 2.75rem no desktop */
+  font-size: clamp(1.9rem, 7vw, 2.75rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.35rem;
+  overflow-wrap: anywhere;   /* username longo não estoura a largura */
+}
+.painel-aluno__saudacao-sub {
+  color: #6c757d;
+  margin-bottom: 0;
+}
+.painel-aluno__saudacao-acoes {
+  flex-shrink: 0;
+}
+
+/* (B) Linha de estatísticas --------------------------------------------*/
+.painel-aluno__stats {
+  margin-bottom: 1.75rem;
+}
+/* Layout horizontal: ícone à esquerda, texto à direita */
+.stat-card {
+  background-color: #ffffff;
+  border: 1px solid #e3e6ea;
+  border-radius: 14px;
+  padding: 1.1rem 1.25rem;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+.stat-card__icone {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background-color: #f1f3f5;
+  color: #343a40;
+}
+.stat-card__texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.stat-card__rotulo {
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+.stat-card__linha {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.stat-card__valor {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #212529;          /* número neutro, como no design */
+}
+.stat-card__qualificador {
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+/* Grade dos cards: 1 coluna até 767px (card horizontal, largura toda) e
+   3 colunas a partir de 768px (row-cols-md-3 nos templates).
+   Entre 768px e 1199px cada card fica estreito, então o ícone sobe para
+   cima do texto e o número ganha a largura toda do card. */
+@media (min-width: 768px) and (max-width: 1199.98px) {
+  .stat-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+  .stat-card__icone {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* (C) Contêiner de inscrições ------------------------------------------*/
+.painel-aluno__inscricoes {
+  background-color: #ffffff;
+  border: 1px solid #e3e6ea;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+}
+.painel-aluno__inscricoes-titulo {
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+.painel-aluno__lista {
+  /* lista de linhas separadas por divisores */
+}
+
+/* Linha de turma: nome à esquerda, status + ação à direita */
+.turma-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 0;
+  border-top: 1px solid #eceef1;
+}
+.turma-row:first-child {
+  border-top: none;
+}
+.turma-row__nome {
+  font-weight: 600;
+  color: #212529;
+}
+.turma-row__direita {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+.turma-row--vazia {
+  display: block;
+}
+
+/* Ação por linha: link de texto com seta */
+.turma-row__acao {
+  font-weight: 600;
+  text-decoration: none;
+  color: #212529;
+  white-space: nowrap;
+}
+.turma-row__acao:hover {
+  text-decoration: underline;
+}
+.turma-row__seta {
+  margin-left: 0.35rem;
+}
+
+/* Badges de status — pílula com bolinha, paleta suave --------------------*/
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;       /* pílula */
+  white-space: nowrap;
+}
+.status-badge__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: currentColor;
+  flex-shrink: 0;
+}
+
+/* Rascunho — cinza neutro */
+.status-badge--rascunho {
+  background-color: #e9ecef;
+  color: #495057;
+}
+
+/* Em análise — âmbar suave (texto âmbar escuro p/ contraste) */
+.status-badge--analise {
+  background-color: #fff3cd;
+  color: #8a6400;
+}
+
+/* Aprovado / Submetido — verde suave */
+.status-badge--aprovado {
+  background-color: #d9f2e4;
+  color: #146c43;
+}
+
+/* Rejeitado — vermelho suave */
+.status-badge--rejeitado {
+  background-color: #f8d7da;
+  color: #b02a37;
+}
+
+/* Não iniciado — cinza neutro */
+.status-badge--nao-iniciado {
+  background-color: #e9ecef;
+  color: #6c757d;
+}
+
+/* Tipo de usuário (Gerenciar Tipos de Usuários) — mesmo formato do status */
+.status-badge--aluno {
+  background-color: #e9ecef;
+  color: #495057;
+}
+.status-badge--professor {
+  background-color: #eaf1fd;
+  color: #1f4e9c;
+}
+
+/* Indicador de foco visível reforçado para controles do painel */
+.turma-row__acao:focus-visible,
+.btn:focus-visible {
+  outline: 3px solid #0a58ca;
+  outline-offset: 2px;
+}
+
+/* ----------------------------------------------------------------------
+   RESPONSIVO — ajustes para celular (abaixo do breakpoint sm do Bootstrap)
+   ---------------------------------------------------------------------- */
+@media (max-width: 575.98px) {
+  /* Painel de inscrições com menos respiro lateral no celular */
+  .painel-aluno__inscricoes {
+    padding: 1rem 1rem;
+  }
+
+  /* Linha de turma empilha: nome em cima; status + ação embaixo */
+  .turma-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+
+  /* O bloco da direita ocupa a largura toda e separa badge da ação */
+  .turma-row__direita {
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+}
+
+/* Helper: largura automática a partir do breakpoint md (o Bootstrap 5 não
+   fornece .w-md-auto por padrão). Usado no botão "Inscrever-se em turma",
+   que é full-width no celular e auto no desktop. */
+@media (min-width: 768px) {
+  .w-md-auto {
+    width: auto !important;
+  }
+}
+
+
+/* ======================================================================
+   INSCRIÇÃO EM TURMA — cabeçalho, card do formulário e card de ajuda
+   ====================================================================== */
+
+/* (A) Cabeçalho da página ---------------------------------------------*/
+.inscricao__cabecalho {
+  margin-bottom: 2rem;
+}
+.inscricao__sobretitulo {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 0.5rem;
+}
+.inscricao__titulo {
+  /* mesma escala fluida da saudação do Painel do Aluno */
+  font-size: clamp(1.9rem, 7vw, 2.75rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.5rem;
+}
+.inscricao__sub {
+  color: #6c757d;
+  margin-bottom: 0;
+}
+
+/* (B) Card do formulário ----------------------------------------------*/
+.inscricao-card {
+  background-color: #ffffff;
+  border: 1px solid #e3e6ea;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 2rem 2.25rem;
+}
+.inscricao-card__topo {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+.inscricao-card__icone {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background-color: #eef1f4;
+  color: #212529;
+}
+.inscricao-card__titulo {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+}
+.inscricao-card__sub {
+  color: #6c757d;
+  margin-bottom: 0;
+}
+.inscricao-card__label {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+.inscricao-card__ajuda {
+  font-size: 0.95rem;
+  color: #6c757d;
+  margin-bottom: 0.6rem;
+}
+.inscricao-card__input {
+  padding: 0.55rem 0.9rem;
+  border-radius: 8px;
+}
+.inscricao-card__input:focus {
+  border-color: #212529;
+  box-shadow: 0 0 0 0.2rem rgba(33, 37, 41, 0.15);
+}
+.inscricao-card__acoes {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;   /* o "Voltar" fica no topo da página */
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+/* (C) Card de ajuda ---------------------------------------------------*/
+.inscricao-ajuda {
+  background-color: #eaf1fd;
+  border-radius: 16px;
+  padding: 1.75rem;
+}
+.inscricao-ajuda__icone {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: #ffffff;
+  color: #212529;
+  margin-bottom: 1.25rem;
+}
+.inscricao-ajuda__titulo {
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+.inscricao-ajuda__texto {
+  color: #495057;
+  margin-bottom: 1.25rem;
+}
+.inscricao-ajuda__nota {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  color: #495057;
+  margin-bottom: 0;
+}
+.inscricao-ajuda__nota svg {
+  flex-shrink: 0;
+  color: #212529;
+}
+
+/* Celular: menos respiro e botão de enviar em largura total */
+@media (max-width: 575.98px) {
+  .inscricao-card {
+    padding: 1.5rem 1.25rem;
+  }
+  .inscricao-card__titulo {
+    font-size: 1.25rem;
+  }
+  .inscricao-card__acoes {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .inscricao-ajuda {
+    padding: 1.5rem 1.25rem;
+  }
+}
+
+
+/* ======================================================================
+   RESUMO ESTRUTURADO (relatório do aluno) — blocos numerados,
+   progresso, envio e avaliação. Reaproveita .painel-coord__* e .status-badge
+   ====================================================================== */
+
+/* (A) Cabeçalho ---------------------------------------------------------*/
+.rs-cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem 2rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.75rem;
+}
+.rs-cabecalho__sub { max-width: 36rem; }
+.rs-cabecalho__status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+.rs-cabecalho__salvo { font-size: 0.8rem; color: #6c757d; }
+
+/* (B) Cards numerados ---------------------------------------------------*/
+.rs-card {
+  background-color: #ffffff;
+  border: 1px solid #e3e6ea;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  scroll-margin-top: 1rem;   /* o link do progresso não cola no topo */
+}
+.rs-card__topo {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+.rs-card__numero {
+  flex-shrink: 0;
+  width: 1.6rem;
+  height: 1.6rem;
+  margin-top: 0.2rem;
+  border-radius: 50%;
+  background-color: #212529;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rs-card__titulo { font-size: 1.3rem; font-weight: 700; margin: 0 0 0.15rem; }
+.rs-card__sub { font-size: 0.85rem; color: #6c757d; margin: 0; }
+
+/* Campos ----------------------------------------------------------------*/
+.rs-campo + .rs-campo { margin-top: 1.4rem; }
+.rs-campo__rotulo {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 0.2rem;
+}
+.rs-campo__ajuda { font-size: 0.82rem; color: #6c757d; margin-bottom: 0.5rem; }
+.rs-campo .form-control {
+  font-size: 0.92rem;
+  border-color: #dee2e6;
+  border-radius: 8px;
+}
+.rs-campo textarea.form-control { min-height: 110px; resize: vertical; line-height: 1.55; }
+.rs-campo textarea[name="nome_autores"] { min-height: 64px; }
+.rs-campo .form-control:focus {
+  border-color: #212529;
+  box-shadow: 0 0 0 0.2rem rgba(33, 37, 41, 0.12);
+}
+.rs-campo__texto { font-size: 0.92rem; color: #212529; line-height: 1.6; overflow-wrap: anywhere; }
+.rs-erro { font-size: 0.82rem; color: #b02a37; margin: 0.4rem 0 0; }
+
+/* Opções em card (programa e ODS): grade de 2 colunas */
+.rs-opcoes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+.rs-opcao {
+  display: block;
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.rs-opcao:hover { border-color: #adb5bd; }
+/* marcado: fundo azul-claro + borda escura, como no design */
+.rs-opcao:has(input:checked),
+.rs-opcao--marcada {
+  background-color: #eef3fc;
+  border-color: #212529;
+}
+.rs-opcao--marcada { cursor: default; }
+.rs-opcao.is-desabilitada { opacity: 0.5; cursor: not-allowed; }
+.rs-opcao__linha {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #212529;
+}
+.rs-opcao__linha .form-check-input { margin: 0; flex-shrink: 0; cursor: inherit; }
+.rs-opcao__linha .form-check-input:checked { background-color: #212529; border-color: #212529; }
+.rs-opcao__sub {
+  display: block;
+  font-size: 0.78rem;
+  color: #6c757d;
+  margin-top: 0.2rem;
+  padding-left: 1.55rem;   /* alinha com o texto, depois da caixinha */
+}
+.rs-opcao--marcada .rs-opcao__sub { padding-left: 0; }
+.rs-contador { font-size: 0.8rem; color: #6c757d; }
+
+/* (C) Coluna lateral ----------------------------------------------------*/
+@media (min-width: 992px) {
+  .rs-lateral { position: sticky; top: 1rem; }  /* acompanha a rolagem */
+}
+.rs-progresso { padding: 1.25rem; }
+.rs-progresso__titulo { font-size: 1.05rem; font-weight: 600; margin-bottom: 0.6rem; }
+.rs-progresso__barra-linha { display: flex; align-items: center; gap: 0.75rem; }
+.rs-progresso__barra {
+  flex: 1;
+  height: 6px;
+  background-color: #e9ecef;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.rs-progresso__preenchido {
+  width: 0;
+  height: 100%;
+  background-color: #212529;
+  border-radius: inherit;
+  transition: width 0.3s ease;
+}
+.rs-progresso__pct { font-size: 0.8rem; font-weight: 600; min-width: 2.5rem; text-align: right; }
+.rs-progresso__lista {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0.75rem 0 0;
+  border-top: 1px solid #eceef1;
+}
+.rs-progresso__item a {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.3rem 0;
+  font-size: 0.85rem;
+  color: #6c757d;
+  text-decoration: none;
+}
+.rs-progresso__item a:hover { color: #000000; }
+/* um ícone por estado; o JS troca o data-estado */
+.rs-progresso__icone { display: flex; }
+.rs-progresso__icone svg { display: none; }
+.rs-progresso__item[data-estado="vazio"] .icone-vazio,
+.rs-progresso__item[data-estado="parcial"] .icone-parcial,
+.rs-progresso__item[data-estado="completo"] .icone-completo { display: block; }
+.rs-progresso__item[data-estado="parcial"] a { color: #212529; }
+.rs-progresso__item[data-estado="completo"] a { color: #146c43; font-weight: 600; }
+.rs-dica {
+  margin-top: 1rem;
+  padding: 0.85rem;
+  background-color: #eef3fc;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #495057;
+}
+.rs-dica svg { display: block; margin-bottom: 0.4rem; color: #212529; }
+
+.rs-acoes { padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
+.rs-acoes__rotulo { display: block; font-size: 0.8rem; color: #6c757d; }
+.rs-acoes__valor { display: block; font-weight: 600; color: #212529; }
+.rs-aviso {
+  padding: 0.75rem;
+  background-color: #f5f6f8;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+.rs-aviso__titulo { font-weight: 600; color: #212529; margin-bottom: 0.2rem; }
+
+/* (D) Avaliação ---------------------------------------------------------*/
+.rs-avaliacao__caixa {
+  min-height: 80px;
+  padding: 0.75rem 0.9rem;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  line-height: 1.6;
+  color: #212529;
+  overflow-wrap: anywhere;
+}
+.rs-avaliacao__caixa--vazia { color: #adb5bd; }
+.rs-avaliacao__rodape {
+  font-size: 0.85rem;
+  color: #6c757d;
+  margin: 1.25rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid #eceef1;
+}
+
+/* Celular ---------------------------------------------------------------*/
+@media (max-width: 575.98px) {
+  .rs-card { padding: 1.15rem 1rem; }
+  .rs-opcoes { grid-template-columns: 1fr; }
+  .rs-cabecalho__status { align-items: flex-start; }
+}
+
+
+/* ======================================================================
+   PAINEL DO COORDENADOR — cabeçalho, cards e tabela de cadernos
+   (os cards reaproveitam o .stat-card do Painel do Aluno)
+   ====================================================================== */
+.painel-coord__cabecalho { margin-bottom: 2rem; }
+.painel-coord__sobretitulo {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 0.5rem;
+}
+.painel-coord__titulo {
+  font-size: clamp(1.9rem, 7vw, 2.75rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.5rem;
+}
+.painel-coord__sub { color: #6c757d; margin-bottom: 0; }
+
+.painel-coord__stats { margin-bottom: 1.75rem; }
+
+/* Card branco que envolve a tabela */
+.painel-coord__cadernos {
+  background-color: #ffffff;
+  border: 1px solid #e3e6ea;
+  border-radius: 14px;
+  overflow: hidden;              /* cantos arredondados também na tabela */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.painel-coord__cadernos-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1.5rem 1.25rem 1rem;
+}
+.painel-coord__cadernos-titulo { font-size: 1.35rem; font-weight: 700; margin-bottom: 0.15rem; }
+.painel-coord__cadernos-sub { font-size: 0.85rem; color: #6c757d; margin-bottom: 0; }
+.painel-coord__cadernos-ordem { font-size: 0.85rem; color: #6c757d; }
+
+/* Tabela */
+.painel-coord__tabela thead th {
+  background-color: #f5f6f8;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #495057;
+  padding: 0.8rem 1.25rem;
+  white-space: nowrap;
+}
+.painel-coord__tabela td { padding: 1rem 1.25rem; }
+.painel-coord__tabela tbody tr:last-child td { border-bottom: none; }
+
+/* Célula "Nome do Caderno": ícone + título + subtítulo */
+.caderno-nome { display: flex; align-items: center; gap: 0.9rem; min-width: 220px; }
+.caderno-nome__titulo { display: block; font-weight: 700; color: #212529; }
+.caderno-nome__sub { display: block; font-size: 0.85rem; color: #6c757d; }
+
+@media (max-width: 575.98px) {
+  .painel-coord__cadernos-topo { padding: 1.15rem 1rem 0.75rem; }
+}
+
+
+/* ======================================================================
+   GESTÃO DE SEMESTRES E TURMAS (coordenador)
+   Reaproveita: .painel-coord__*, .caderno-nome, .stat-card__icone
+   ====================================================================== */
+/* Card branco genérico do coordenador */
+.coord-card {
+  background-color: #ffffff;
+  border: 1px solid #e3e6ea;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  margin-bottom: 1.5rem;
+}
+
+/* Card do semestre */
+.semestre-card { padding: 1.5rem 1.25rem 1.25rem; }
+.semestre-card__topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #eceef1;
+}
+.semestre-card__titulo { font-size: 1.35rem; font-weight: 600; margin-bottom: 0.25rem; }
+.semestre-card__rodape {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  flex-wrap: wrap;
+  padding-top: 1.1rem;
+  font-size: 0.95rem;
+}
+.semestre-card__resumo { font-size: 0.85rem; color: #6c757d; }
+
+/* Linha de turma */
+.turma-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1.1rem 1.25rem;
+  border-top: 1px solid #eceef1;
+}
+.turma-item .caderno-nome { min-width: 0; }
+.turma-item--vazia { color: #6c757d; font-style: italic; }
+
+@media (max-width: 575.98px) {
+  .semestre-card { padding: 1.15rem 1rem 1rem; }
+  .turma-item { padding: 1rem; }
+  .turma-item .btn { width: 100%; }
+}
+
+
+/* ======================================================================
+   BANCO DE RESUMOS APROVADOS (coordenador, por turma)
+   Reaproveita: .coord-card, .semestre-card__*, .status-badge
+   ====================================================================== */
+
+/* Card de dados da turma: 3 colunas no desktop, empilha no celular */
+.turma-info {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1.2fr;
+  gap: 1rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid #eceef1;
+}
+.turma-info__rotulo { display: block; font-size: 0.8rem; color: #6c757d; margin-bottom: 0.15rem; }
+.turma-info__valor { display: block; font-weight: 600; color: #212529; }
+
+/* Card de cada resumo */
+.resumo-card { margin-bottom: 1rem; scroll-margin-top: 1rem; }
+.resumo-card__corpo { padding: 1.25rem 1rem 1rem; }
+.resumo-card__titulo {
+  color: #212529;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-size: 1.05rem;
+}
+.resumo-card__titulo:hover { color: #000000; }
+.resumo-card__linha { font-size: 0.85rem; color: #6c757d; margin-bottom: 0.3rem; }
+
+/* Rodapé cinza com o interruptor */
+.resumo-card__rodape {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  flex-wrap: wrap;
+  background-color: #f5f6f8;
+  padding: 0.85rem 1rem;
+}
+.resumo-card__switch {
+  width: 2.6em !important;
+  height: 1.4em;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.resumo-card__switch:checked {
+  background-color: #198754;
+  border-color: #198754;
+}
+.resumo-card__switch-titulo { display: block; font-size: 0.85rem; font-weight: 600; color: #212529; }
+.resumo-card__switch-sub { display: block; font-size: 0.8rem; color: #6c757d; }
+
+@media (max-width: 767.98px) {
+  .turma-info { grid-template-columns: 1fr; }
+}
+
+
+/* ======================================================================
+   PAINEL DA TURMA (professor) — cabeçalho, dados da turma e tabela
+   Reaproveita: .painel-coord__*, .turma-info, .stat-card, .caderno-nome__*,
+   .status-badge, .turma-row__acao
+   ====================================================================== */
+
+/* Cabeçalho: título à esquerda, "Voltar ao Dashboard" à direita */
+.painel-turma__cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem 2rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.75rem;
+}
+
+/* Dados da turma soltos no fundo (sem a linha divisória do card) */
+.painel-turma__info {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 1.75rem;
+}
+
+/* Título do projeto na tabela */
+.painel-turma__projeto { display: block; font-weight: 600; color: #212529; }
+
+
+/* ======================================================================
+   PAINEL DO PROFESSOR — lista de turmas e criação de turma
+   Reaproveita: .painel-turma__cabecalho, .painel-coord__*, .turma-item,
+   .caderno-nome, .inscricao-* (layout da Inscrição em Turma)
+   ====================================================================== */
+
+/* Código de acesso ao lado do nome da turma */
+.codigo-turma {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  background-color: #f1f3f5;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #495057;
+  letter-spacing: 0.03em;
+  vertical-align: middle;
+}
+
+/* Espaço entre os campos do formulário de nova turma */
+.criar-turma__campo + .criar-turma__campo { margin-top: 1.4rem; }
+
+
+/* ======================================================================
+   ANÁLISE DO RESUMO (professor)
+   Reaproveita: .rs-card, .rs-acoes, .rs-dica, .rs-avaliacao__*, .turma-info__rotulo
+   ====================================================================== */
+.analise__dado { margin-bottom: 1.1rem; }
+.analise__titulo-projeto { font-size: 1.3rem; font-weight: 600; color: #212529; margin: 0; }
+.analise__valor { display: block; color: #212529; }
+
+/* Conteúdo do resumo, separado dos dados por uma linha */
+.analise__conteudo {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #eceef1;
+}
+.analise__secao { font-size: 1.25rem; font-weight: 700; margin: 1.5rem 0 0.5rem; }
+.analise__secao:first-child { margin-top: 0; }
+.analise__texto { color: #495057; line-height: 1.6; overflow-wrap: anywhere; }
+.analise__texto p:last-child { margin-bottom: 0; }
+
+/* Lateral */
+.analise__lateral-titulo { font-size: 1.15rem; font-weight: 500; margin: 0; }
+.analise__pdf { padding-top: 1rem; border-top: 1px solid #eceef1; }
+
+/* Formulário de avaliação */
+.analise__feedback { font-size: 0.92rem; border-radius: 8px; resize: vertical; }
+.analise__feedback:focus {
+  border-color: #212529;
+  box-shadow: 0 0 0 0.2rem rgba(33, 37, 41, 0.12);
+}
+.analise__rodape {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eceef1;
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+
+/* ======================================================================
+   PÁGINAS DO RODAPÉ (Central de ajuda e Privacidade)
+   Reaproveita: .painel-coord__*, .coord-card, .rs-dica
+   ====================================================================== */
+.pagina-info { padding: 1.5rem 1.25rem; }
+.pagina-info__titulo { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.75rem; }
+.pagina-info__lista { margin-bottom: 0; padding-left: 1.1rem; color: #495057; }
+.pagina-info__lista li + li { margin-top: 0.5rem; }
+
+/* Pergunta que abre/fecha (<details>) */
+.pagina-info__item { border-top: 1px solid #eceef1; }
+.pagina-info__item summary {
+  padding: 0.85rem 0;
+  font-weight: 600;
+  color: #212529;
+  cursor: pointer;
+}
+.pagina-info__item p { color: #495057; margin: 0 0 0.9rem; }
+
+.pagina-info__contato { margin-top: 0; font-size: 0.9rem; }
+
+@media (max-width: 575.98px) {
+  .pagina-info { padding: 1.15rem 1rem; }
+}
+
+
+/* ======================================================================
+   TELAS DO PROFESSOR NO CELULAR
+   ====================================================================== */
+
+/* Botões Rejeitar / Aprovar da Análise do Resumo */
+.analise__botoes { display: flex; gap: 0.5rem; }
+
+/* Tabela que vira cards empilhados no celular (Painel da Turma).
+   Cada <td> leva um data-label, mostrado como rótulo no lugar do <thead>. */
+@media (max-width: 575.98px) {
+  .tabela-empilhada thead { display: none; }
+  .tabela-empilhada,
+  .tabela-empilhada tbody,
+  .tabela-empilhada tr,
+  .tabela-empilhada td { display: block; width: 100%; }
+
+  .tabela-empilhada tr {
+    padding: 1rem;
+    border-top: 1px solid #eceef1;
+  }
+  .painel-coord__tabela.tabela-empilhada td {
+    padding: 0;
+    border: none;
+  }
+  .tabela-empilhada td + td { margin-top: 0.75rem; }
+  .tabela-empilhada td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-bottom: 0.15rem;
+  }
+
+  /* Ação vira um botão de largura total, fácil de tocar */
+  .tabela-empilhada .tabela-empilhada__acoes { text-align: left; }
+  .tabela-empilhada__acoes .turma-row__acao {
+    display: block;
+    padding: 0.6rem 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    text-align: center;
+  }
+  .tabela-empilhada .tabela-empilhada__vazia { padding: 1.5rem 1rem; }
+
+  /* Painel do Professor: "Criar uma nova turma" em largura total */
+  .painel-turma__cabecalho > .btn { width: 100%; }
+
+  /* Linha de turma: badge em cima, "Visualizar Resumos" com área de toque maior */
+  .turma-item .turma-row__acao { padding: 0.5rem 0; }
+
+  /* Análise do Resumo: rodapé empilha e os botões dividem a largura */
+  .analise__rodape {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .analise__botoes .btn {
+    flex: 1;
+    padding-top: 0.65rem;
+    padding-bottom: 0.65rem;
+  }
+}
+
+
+/* ======================================================================
+   GERENCIAR TIPOS DE USUÁRIOS (coordenador)
+   Reaproveita: .painel-coord__cadernos/__tabela, .tabela-empilhada,
+   .caderno-nome__*, .inscricao-card__input
+   ====================================================================== */
+
+/* Busca no topo do card da tabela, ao lado do título */
+.usuarios-busca {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1 1 320px;
+  max-width: 420px;
+}
+
+@media (max-width: 575.98px) {
+  .usuarios-busca { max-width: none; }
+}

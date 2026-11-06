@@ -5,6 +5,8 @@ __pycache__/
 
 # C extensions
 *.so
+dados.json
+CLAUDE.md
 
 # Distribution / packaging
 .Python
@@ -60,6 +62,8 @@ cover/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+# Cópia antiga do banco SQLite com dados reais: não versionar
+db.sqlite3.seed
 
 # Flask stuff:
 instance/
@@ -205,3 +209,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Arquivos gerados na criação de PDF (pdflatex)
+plataformaResumosAPP/arquivos_temp/

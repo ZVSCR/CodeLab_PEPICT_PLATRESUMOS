@@ -1,0 +1,48 @@
+# Desenvolvimento: sobe o banco e o app juntos.
+#   docker compose up -d        -> app em http://localhost:8000
+#   docker compose logs -f web  -> acompanha os logs do app
+#   docker compose down         -> desliga tudo (os dados do banco ficam no volume)
+services:
+  db:
+    image: postgres:17
+    container_name: plataforma-resumos-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      target: dev
+    image: plataforma-resumos:dev
+    container_name: plataforma-resumos-web
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DEBUG: "True"
+      # Dentro do Docker o banco é o serviço "db", não o localhost
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    ports:
+      - "8000:8000"
+    volumes:
+      # O código do seu PC aparece dentro do container: editou, o runserver recarrega
+      - .:/app
+      # Mantém a pasta static/ gerada no build (o código montado acima esconderia ela)
+      - /app/static
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

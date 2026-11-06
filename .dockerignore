@@ -1,3 +1,29 @@
-fly.toml
+# Git e CI
 .git/
+.github/
+
+# Segredos e configuração local
+.env
+.env.*
+!.env.example
+
+# Bancos locais e dumps com dados de usuários
 *.sqlite3
+*.sqlite3.seed
+dados.json
+
+# Ambientes virtuais e caches do Python
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Arquivos gerados (o collectstatic roda dentro do build)
+static/
+plataformaResumosAPP/arquivos_temp/
+
+# Arquivos que não fazem parte do app
+docker-compose*.yml
+Monografia_TCC_AndreTokumoto.pdf
+CLAUDE.md
