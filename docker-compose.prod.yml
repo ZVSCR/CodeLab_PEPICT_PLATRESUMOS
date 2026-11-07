@@ -1,23 +1,56 @@
-# Produção (VPS): sobe só o app. O banco fica no Neon.
-# Uso no servidor:
+# Produção (VPS): sobe o app e o banco Postgres na mesma máquina.
+# Uso no servidor, dentro da pasta do projeto:
 #   docker compose -f docker-compose.prod.yml up -d --build
+#
+# ⚠️ Servidor compartilhado: nunca rode "down -v" (apaga o volume do banco).
+
+# Nome fixo do projeto: containers, rede e volume ficam com o prefixo "plataforma-resumos"
+name: plataforma-resumos
+
 services:
+  db:
+    image: postgres:17
+    container_name: plataforma-resumos-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    # Sem "ports": o banco só é acessível pela rede interna do Docker (pelo app),
+    # nunca pela internet
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   web:
-    build: .
+    build:
+      context: .
+      target: prod
     image: plataforma-resumos:latest
     container_name: plataforma-resumos-web
     restart: unless-stopped
-    # Variáveis de produção (DATABASE_URL do Neon, SECRET_KEY, ALLOWED_HOSTS...)
+    # Variáveis de produção (SECRET_KEY, ALLOWED_HOSTS, senhas do banco...)
     env_file: .env
     environment:
-      PYTHONUNBUFFERED: "1"
+      # Dentro do Docker o banco é o serviço "db", não o localhost
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     ports:
-      # Só o próprio servidor acessa a porta 8000; o acesso externo passa pelo proxy com HTTPS.
-      # Para testar sem proxy, troque por "8000:8000".
+      # Só o próprio servidor acessa a porta 8000; o acesso externo passa pelo Nginx com HTTPS
       - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
     healthcheck:
+      # Precisa de 127.0.0.1 no ALLOWED_HOSTS do .env
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
+
+volumes:
+  pgdata:
